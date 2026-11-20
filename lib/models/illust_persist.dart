@@ -1,3 +1,4 @@
+import 'package:pixez/er/database_directory.dart';
 /*
  * Copyright (C) 2020. by perol_notsf, All rights reserved
  *
@@ -86,7 +87,7 @@ create table $tableIllustPersist (
   }
 
   Future open() async {
-    String databasesPath = (await getDatabasesPath());
+    String databasesPath = (await demoDatabaseDirectory());
     String path = join(databasesPath, 'illustpersist.db');
     db = await openDatabase(
       path,

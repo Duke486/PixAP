@@ -1,3 +1,5 @@
+import 'artwork_edge_back.dart';
+import 'package:pixez/component/ipad_surface.dart';
 /*
  * Copyright (C) 2020. by perol_notsf, All rights reserved
  *
@@ -76,6 +78,11 @@ class IllustLightingPage extends StatefulWidget {
 class _IllustLightingPageState extends State<IllustLightingPage> {
   @override
   Widget build(BuildContext context) {
+    final page = _detailLayout(context);
+    return widget.onHorizontalDragEnd == null ? ArtworkEdgeBack(child: page) : page;
+  }
+
+  Widget _detailLayout(BuildContext context) {
     switch (userSetting.padMode) {
       case 0:
         MediaQueryData mediaQuery = MediaQuery.of(context);
@@ -279,7 +286,7 @@ class _IllustVerticalPageState extends State<IllustVerticalPage>
               builder: (context) {
                 return Visibility(
                   visible: _illustStore.errorMessage == null,
-                  child: FloatingActionButton(
+                  child: GalleryFavoriteButton(
                     heroTag: widget.id,
                     onPressed: () async {
                       if (userSetting.saveAfterStar &&
@@ -945,6 +952,7 @@ class _IllustVerticalPageState extends State<IllustVerticalPage>
                 ),
               ),
               UserFollowButton(
+                glass: true,
                 id: illust.user.id,
                 followed:
                     userStore?.isFollow ?? illust.user.isFollowed ?? false,

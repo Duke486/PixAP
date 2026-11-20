@@ -4,6 +4,8 @@ import 'dart:typed_data';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:html/parser.dart' show parse;
@@ -11,11 +13,10 @@ import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
 import 'package:image_picker_android/image_picker_android.dart';
 import 'package:image_picker_platform_interface/image_picker_platform_interface.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:pixez/component/ipad_surface.dart';
 import 'package:pixez/component/pixiv_image.dart';
 import 'package:pixez/er/hoster.dart';
 import 'package:pixez/er/leader.dart';
-import 'package:pixez/er/lprinter.dart';
 import 'package:pixez/er/prefer.dart';
 import 'package:pixez/i18n.dart';
 import 'package:pixez/main.dart';
@@ -28,7 +29,96 @@ import 'package:url_launcher/url_launcher_string.dart';
 enum _SauceNaoPhase { idle, loading, done, error }
 
 class SauceNaoModal extends StatefulWidget {
-  const SauceNaoModal({super.key});
+  const SauceNaoModal({super.key}) : _initialPath = null;
+
+  const SauceNaoModal._withImage(this._initialPath);
+
+  final String? _initialPath;
+
+  static Future<String?> _pickSource(BuildContext context) async {
+    final strings = I18n.of(context);
+    final box = context.findRenderObject();
+    if (box is! RenderBox || !box.hasSize) return null;
+    final rect = box.localToGlobal(Offset.zero) & box.size;
+    try {
+      final source = await const MethodChannel('pixez/sauceNaoImage')
+          .invokeMethod<String>('pickSource', {
+            'x': rect.left,
+            'y': rect.top,
+            'width': rect.width,
+            'height': rect.height,
+            'photos': strings.saucenao_photos,
+            'files': strings.saucenao_files,
+          });
+      if (source == null || !context.mounted) return null;
+      final picked = await switch (source) {
+        'photos' => FilePicker.pickFile(
+          type: FileType.image,
+          darwinOptions: const DarwinOptions(
+            assetRepresentationMode: DarwinAssetRepresentationMode.compatible,
+          ),
+        ),
+        'files' => FilePicker.pickFile(
+          type: FileType.custom,
+          allowedExtensions: const [
+            'jpg',
+            'jpeg',
+            'png',
+            'heic',
+            'heif',
+            'webp',
+            'gif',
+            'tif',
+            'tiff',
+            'bmp',
+            'avif',
+            'dng',
+          ],
+        ),
+        _ => Future<PlatformFile?>.value(null),
+      };
+      return picked?.path;
+    } on PlatformException {
+      if (context.mounted) {
+        await showDialog<void>(
+          context: context,
+          builder: (context) => AlertDialog(
+            content: Text(strings.saucenao_image_error),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text(strings.ok),
+              ),
+            ],
+          ),
+        );
+      }
+      return null;
+    }
+  }
+
+  static Future<void> showFromPicker(BuildContext context) async {
+    final path = await _pickSource(context);
+    if (path == null || !context.mounted) return;
+    final result = await showDialog<SauceNaoResult>(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        clipBehavior: Clip.antiAlias,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+        child: IPadSurface(
+          includeIPhone: true,
+          maxWidth: 520,
+          darkGlass: Theme.of(context).brightness == Brightness.dark,
+          child: SauceNaoModal._withImage(path),
+        ),
+      ),
+    );
+    if (result == null || !context.mounted) return;
+    Leader.push(context, IllustLightingPage(id: result.illustId));
+  }
 
   static Future<void> show(BuildContext context) async {
     final result = await showModalBottomSheet<SauceNaoResult>(
@@ -50,8 +140,24 @@ class _SauceNaoModalState extends State<SauceNaoModal> {
   CancelToken? _cancelToken;
   _SauceNaoPhase _phase = _SauceNaoPhase.idle;
   String? _errorMessage;
-  String? _pickedPath;
+  String? _sourcePath;
+  Uint8List? _imageBytes;
+  double? _progress;
+  bool _picking = false;
   final List<SauceNaoResult> _results = [];
+
+  @override
+  void initState() {
+    super.initState();
+    final path = widget._initialPath;
+    if (path != null) {
+      _sourcePath = path;
+      _phase = _SauceNaoPhase.loading;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _search();
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -71,64 +177,82 @@ class _SauceNaoModalState extends State<SauceNaoModal> {
     }
   }
 
-  Future<void> _pickAndSearch() async {
-    await _ensurePhotoPickerPreference();
-    final picker = ImagePicker();
-    final ImagePickerPlatform imagePickerImplementation =
-        ImagePickerPlatform.instance;
-    if (imagePickerImplementation is ImagePickerAndroid) {
-      imagePickerImplementation.useAndroidPhotoPicker =
-          userSetting.imagePickerType == 1;
+  Future<void> _pickAndSearch({BuildContext? anchor}) async {
+    if (_picking) return;
+    _picking = true;
+    try {
+      final String? path;
+      if (widget._initialPath != null) {
+        path = await SauceNaoModal._pickSource(anchor ?? context);
+      } else {
+        await _ensurePhotoPickerPreference();
+        if (!mounted) return;
+        final implementation = ImagePickerPlatform.instance;
+        if (implementation is ImagePickerAndroid) {
+          implementation.useAndroidPhotoPicker =
+              userSetting.imagePickerType == 1;
+        }
+        path = (await ImagePicker().pickImage(
+          source: ImageSource.gallery,
+        ))?.path;
+      }
+      if (path == null || !mounted) return;
+      _sourcePath = path;
+      _imageBytes = null;
+      await _search();
+    } on PlatformException {
+      if (mounted) {
+        setState(() {
+          _phase = _SauceNaoPhase.error;
+          _errorMessage = I18n.of(context).saucenao_image_error;
+        });
+      }
+    } finally {
+      _picking = false;
     }
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
-    if (pickedFile == null || !mounted) return;
-
-    final originImageBytes = await pickedFile.readAsBytes();
-    final newImageBytes = _compressImage(originImageBytes);
-    LPrinter.d(
-      "Uncompressed image size: ${originImageBytes.length}, compressed image size: ${newImageBytes.length}",
-    );
-    final path =
-        "${(await getTemporaryDirectory()).path}/${DateTime.now().millisecondsSinceEpoch}.jpg";
-    await File(path).writeAsBytes(newImageBytes);
-    if (!mounted) return;
-
-    setState(() {
-      _pickedPath = path;
-      _phase = _SauceNaoPhase.loading;
-      _errorMessage = null;
-      _results.clear();
-    });
-    await _search(path);
   }
 
   Future<void> _retry() async {
-    final path = _pickedPath;
-    if (path == null) {
+    if (_sourcePath == null) {
       await _pickAndSearch();
-      return;
+    } else {
+      await _search();
     }
-    if (!mounted) return;
-    setState(() {
-      _phase = _SauceNaoPhase.loading;
-      _errorMessage = null;
-      _results.clear();
-    });
-    await _search(path);
   }
 
-  Future<void> _search(String path) async {
+  Future<void> _search() async {
+    final path = _sourcePath;
+    if (path == null) return;
     _cancelToken?.cancel("restart");
     final cancelToken = CancelToken();
     _cancelToken = cancelToken;
+    setState(() {
+      _phase = _SauceNaoPhase.loading;
+      _progress = null;
+      _errorMessage = null;
+      _results.clear();
+    });
     try {
-      final formData = FormData();
-      formData.files.add(MapEntry("file", await MultipartFile.fromFile(path)));
+      final bytes = _imageBytes ?? await _prepareImage(path);
+      if (!mounted || cancelToken.isCancelled) return;
+      setState(() => _imageBytes = bytes);
+
+      final formData = FormData.fromMap({
+        'file': MultipartFile.fromBytes(
+          bytes,
+          filename: 'image.jpg',
+          contentType: DioMediaType('image', 'jpeg'),
+        ),
+      });
 
       final response = await _dio.post(
         '/search.php',
         data: formData,
         cancelToken: cancelToken,
+        onSendProgress: (sent, total) {
+          if (!mounted || cancelToken.isCancelled || total <= 0) return;
+          setState(() => _progress = (sent / total).clamp(0.0, 1.0));
+        },
       );
       if (!mounted || cancelToken.isCancelled) return;
 
@@ -144,6 +268,12 @@ class _SauceNaoModalState extends State<SauceNaoModal> {
       setState(() {
         _phase = _SauceNaoPhase.error;
         _errorMessage = e.message ?? e.toString();
+      });
+    } on FormatException {
+      if (!mounted || cancelToken.isCancelled) return;
+      setState(() {
+        _phase = _SauceNaoPhase.error;
+        _errorMessage = I18n.of(context).saucenao_image_error;
       });
     } catch (e) {
       if (!mounted || cancelToken.isCancelled) return;
@@ -296,9 +426,27 @@ class _SauceNaoModalState extends State<SauceNaoModal> {
     return null;
   }
 
+  Future<Uint8List> _prepareImage(String path) async {
+    if (Platform.isIOS) {
+      try {
+        final bytes = await const MethodChannel(
+          'pixez/sauceNaoImage',
+        ).invokeMethod<Uint8List>('prepare', path);
+        if (bytes != null && bytes.isNotEmpty) return bytes;
+      } on PlatformException {
+        throw const FormatException('Could not decode the selected image.');
+      }
+      throw const FormatException('Could not decode the selected image.');
+    }
+    return _compressImage(await File(path).readAsBytes());
+  }
+
   Uint8List _compressImage(Uint8List originImageBytes) {
     final originImage = img.decodeImage(originImageBytes);
-    final originWidth = originImage!.width;
+    if (originImage == null) {
+      throw const FormatException('Could not decode the selected image.');
+    }
+    final originWidth = originImage.width;
     final originHeight = originImage.height;
     int newWidth, newHeight;
     if (originWidth < 720 || originHeight < 720) {
@@ -373,7 +521,10 @@ class _SauceNaoModalState extends State<SauceNaoModal> {
 
   @override
   Widget build(BuildContext context) {
-    final height = MediaQuery.of(context).size.height * 0.75;
+    final glass = widget._initialPath != null;
+    final height =
+        MediaQuery.sizeOf(context).height *
+        (glass && _phase != _SauceNaoPhase.done ? 0.52 : 0.75);
     return PopScope(
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) _cancelRequest();
@@ -384,14 +535,15 @@ class _SauceNaoModalState extends State<SauceNaoModal> {
           child: Column(
             children: [
               const SizedBox(height: 8),
-              Container(
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.outlineVariant,
-                  borderRadius: BorderRadius.circular(2),
+              if (!glass)
+                Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.outlineVariant,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
-              ),
               ListTile(
                 title: Text("SauceNAO"),
                 trailing: IconButton(
@@ -449,33 +601,50 @@ class _SauceNaoModalState extends State<SauceNaoModal> {
   }
 
   Widget _buildLoading(BuildContext context) {
+    final strings = I18n.of(context);
+    final bytes = _imageBytes;
+    final progress = _progress;
     return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (_pickedPath != null)
+            if (bytes != null) ...[
               ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.file(
-                  File(_pickedPath!),
-                  width: 120,
-                  height: 120,
+                borderRadius: BorderRadius.circular(14),
+                child: Image.memory(
+                  bytes,
+                  width: 88,
+                  height: 88,
                   fit: BoxFit.cover,
                 ),
               ),
-            const SizedBox(height: 24),
-            const CircularProgressIndicator(),
-            const SizedBox(height: 16),
-            Text(I18n.of(context).uploading),
-            const SizedBox(height: 16),
+              const SizedBox(height: 14),
+            ],
+            SizedBox(
+              width: 200,
+              child: LinearProgressIndicator(
+                value: progress == 1 ? null : progress,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              bytes == null
+                  ? strings.parsing
+                  : progress == 1
+                  ? strings.saucenao_waiting
+                  : progress == null
+                  ? strings.uploading
+                  : '${strings.uploading} ${(progress * 100).round()}%',
+            ),
+            const SizedBox(height: 8),
             TextButton(
               onPressed: () {
                 _cancelRequest();
                 Navigator.of(context).pop();
               },
-              child: Text(I18n.of(context).cancel),
+              child: Text(strings.cancel),
             ),
           ],
         ),
@@ -513,6 +682,13 @@ class _SauceNaoModalState extends State<SauceNaoModal> {
               onPressed: _retry,
               child: Text(I18n.of(context).retry),
             ),
+            if (widget._initialPath != null)
+              Builder(
+                builder: (anchor) => TextButton(
+                  onPressed: () => _pickAndSearch(anchor: anchor),
+                  child: Text(I18n.of(context).saucenao_choose_image),
+                ),
+              ),
           ],
         ),
       ),
@@ -529,10 +705,12 @@ class _SauceNaoModalState extends State<SauceNaoModal> {
             children: [
               Text(I18n.of(context).no_result),
               const SizedBox(height: 16),
-              FilledButton.icon(
-                onPressed: _pickAndSearch,
-                icon: Icon(Icons.add_photo_alternate),
-                label: Text(I18n.of(context).upload_picture),
+              Builder(
+                builder: (anchor) => FilledButton.icon(
+                  onPressed: () => _pickAndSearch(anchor: anchor),
+                  icon: Icon(Icons.add_photo_alternate),
+                  label: Text(I18n.of(context).upload_picture),
+                ),
               ),
             ],
           ),
@@ -553,10 +731,12 @@ class _SauceNaoModalState extends State<SauceNaoModal> {
                   ).tap_to_show_results(_results.length.toString()),
                 ),
               ),
-              TextButton.icon(
-                onPressed: _pickAndSearch,
-                icon: Icon(Icons.add_photo_alternate),
-                label: Text(I18n.of(context).upload_picture),
+              Builder(
+                builder: (anchor) => TextButton.icon(
+                  onPressed: () => _pickAndSearch(anchor: anchor),
+                  icon: Icon(Icons.add_photo_alternate),
+                  label: Text(I18n.of(context).upload_picture),
+                ),
               ),
             ],
           ),

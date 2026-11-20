@@ -1,4 +1,4 @@
-name: Build IOS
+name: PixAP · iOS 构建
 
 on:
   workflow_dispatch:
@@ -41,9 +41,9 @@ jobs:
       - name: Zip ipa
         run: |
           cd build/ios/iphoneos
-          zip -r pixez-ios.ipa Payload
+          zip -r 'PixAP-iOS.ipa' Payload
 
       - uses: actions/upload-artifact@v7
         with:
-          name: pixez-ios.ipa
-          path: build/ios/iphoneos/pixez-ios.ipa
+          name: PixAP-iOS.ipa
+          path: build/ios/iphoneos/PixAP-iOS.ipa

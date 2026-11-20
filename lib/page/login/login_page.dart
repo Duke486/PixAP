@@ -18,6 +18,8 @@ import 'dart:io';
 
 import 'package:bot_toast/bot_toast.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:pixez/component/ipad_surface.dart';
+import 'package:pixez/constants.dart';
 import 'package:pixez/custom_tab_plugin.dart';
 import 'package:pixez/er/leader.dart';
 import 'package:pixez/i18n.dart';
@@ -53,6 +55,9 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (Theme.of(context).platform == TargetPlatform.iOS) {
+      return _buildGlassPage(context);
+    }
     return Scaffold(
       bottomNavigationBar: BottomAppBar(
         child: Row(
@@ -88,88 +93,127 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  Widget _buildBody(BuildContext context) {
-    return Container(
-      child: Padding(
-        padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top),
-        child: SingleChildScrollView(
-          padding: EdgeInsets.all(0),
-          child: Column(
-            children: <Widget>[
-              Container(height: 20),
-              Image.asset('assets/images/icon.png', height: 80, width: 80),
-              Padding(
-                padding: EdgeInsets.only(bottom: 20),
-                child: Container(
-                  padding: EdgeInsets.symmetric(horizontal: 20),
-                  child: Container(
+  Widget _buildGlassPage(BuildContext context) {
+    final theme = Theme.of(context);
+    return Scaffold(
+      backgroundColor: theme.colorScheme.surface,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
+      ),
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight: (constraints.maxHeight - 48)
+                      .clamp(0.0, double.infinity)
+                      .toDouble(),
+                ),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 420),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
-                      children: <Widget>[
-                        SizedBox(height: 10),
-                        FilledButton(
-                          child: Text(I18n.of(context).login),
-                          onPressed: () async {
-                            try {
-                              String url =
-                                  await OAuthClient.generateWebviewUrl();
-                              _launch(url);
-                            } catch (e) {}
-                          },
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(24),
+                          child: Image.asset(
+                            'assets/images/pixap_login_icon.png',
+                            width: 96,
+                            height: 96,
+                          ),
                         ),
-                        SizedBox(height: 4),
-                        FilledButton(
-                          onPressed: () async {
-                            try {
-                              String url = await OAuthClient.generateWebviewUrl(
-                                create: true,
-                              );
-                              _launch(url);
-                            } catch (e) {}
-                          },
-                          child: Text(I18n.of(context).dont_have_account),
+                        const SizedBox(height: 16),
+                        Text(
+                          Constants.appleAppName,
+                          style: theme.textTheme.headlineMedium,
                         ),
-                        SizedBox(height: 4),
-                        OutlinedButton(
-                          onPressed: () async {
-                            await showDialog(
-                              context: context,
-                              builder: (context) => TokenPage(),
-                            );
-                          },
-                          child: Text("Token"),
-                        ),
-                        SizedBox(height: 4),
-                        TextButton(
-                          child: Text(I18n.of(context).terms),
-                          onPressed: () async {
-                            final url =
-                                'https://www.pixiv.net/terms/?page=term';
-                            try {
-                              await launchUrlString(url);
-                            } catch (e) {}
-                          },
+                        const SizedBox(height: 24),
+                        IPadSurface(
+                          includeIPhone: true,
+                          darkGlass: theme.brightness == Brightness.dark,
+                          child: Padding(
+                            padding: const EdgeInsets.all(18),
+                            child: _buildActions(context),
+                          ),
                         ),
                       ],
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
                     ),
                   ),
                 ),
               ),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );
   }
 
-  _launch(url) async {
+  Widget _buildBody(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(top: MediaQuery.paddingOf(context).top),
+      child: SingleChildScrollView(
+        child: Column(
+          children: [
+            const SizedBox(height: 20),
+            Image.asset('assets/images/icon.png', height: 80, width: 80),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+              child: _buildActions(context),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActions(BuildContext context) {
+    final strings = I18n.of(context);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: 10),
+        FilledButton(onPressed: () => _openLogin(), child: Text(strings.login)),
+        const SizedBox(height: 4),
+        FilledButton(
+          onPressed: () => _openLogin(create: true),
+          child: Text(strings.dont_have_account),
+        ),
+        const SizedBox(height: 4),
+        OutlinedButton(
+          onPressed: () => showDialog<void>(
+            context: context,
+            builder: (context) => TokenPage(),
+          ),
+          child: const Text('Token'),
+        ),
+        const SizedBox(height: 4),
+        TextButton(
+          onPressed: () async {
+            try {
+              await launchUrlString('https://www.pixiv.net/terms/?page=term');
+            } catch (e) {}
+          },
+          child: Text(strings.terms),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _openLogin({bool create = false}) async {
+    try {
+      final url = await OAuthClient.generateWebviewUrl(create: create);
+      if (mounted) _launch(url);
+    } catch (e) {}
+  }
+
+  Future<void> _launch(String url) async {
     if (Platform.isIOS) {
-      final result = await Leader.push(context, WebViewPage(url: url));
-      if (result == "OK") {
-        Leader.pushUntilHome(context);
-      }
+      await Leader.push(context, WebViewPage(url: url));
       return;
     }
     if (Platform.isMacOS) {

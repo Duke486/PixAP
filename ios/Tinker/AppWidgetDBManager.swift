@@ -35,7 +35,7 @@ enum AppWidgetDBManager {
     static let ctype = "type"
     
     static func fetch() -> [AppWidgetIllust] {
-        let selectedType = UserDefaults(suiteName: "group.pixez")?.string(forKey: "widget_illust_type") ?? "recom"
+        let selectedType = UserDefaults(suiteName: "group.com.duke486.pixez.ipad")?.string(forKey: "widget_illust_type") ?? "recom"
         guard let db = groupDB() else {
             return []
         }
@@ -92,7 +92,7 @@ enum AppWidgetDBManager {
     static func groupDB() -> FMDatabase? {
         let fileManager = FileManager.default
         let dummyDatabaseName = "glanceillustpersist.db"
-        if let directory = fileManager.containerURL(forSecurityApplicationGroupIdentifier: "group.pixez") {
+        if let directory = fileManager.containerURL(forSecurityApplicationGroupIdentifier: "group.com.duke486.pixez.ipad") {
             let newDirectory = directory.appendingPathComponent("DB")
             try? fileManager.createDirectory(at: newDirectory, withIntermediateDirectories: false, attributes: nil)
             let url = newDirectory.appendingPathComponent(dummyDatabaseName)
@@ -103,7 +103,7 @@ enum AppWidgetDBManager {
 
     static func illustFolder() -> URL? {
         let fileManager = FileManager.default
-        if let directory = fileManager.containerURL(forSecurityApplicationGroupIdentifier: "group.pixez") {
+        if let directory = fileManager.containerURL(forSecurityApplicationGroupIdentifier: "group.com.duke486.pixez.ipad") {
             let newDirectory = directory.appendingPathComponent("Illusts")
             try? fileManager.createDirectory(at: newDirectory, withIntermediateDirectories: false, attributes: nil)
             return newDirectory

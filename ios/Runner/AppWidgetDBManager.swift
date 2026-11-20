@@ -38,7 +38,7 @@ enum AppWidgetDBManager {
             print("db not exist")
             return
         }
-        if let directory = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.pixez") {
+        if let directory = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.duke486.pixez.ipad") {
             let newDirectory = directory.appendingPathComponent("DB")
             try? FileManager.default.createDirectory(at: newDirectory, withIntermediateDirectories: false, attributes: nil)
             let url = newDirectory.appendingPathComponent(dummyDatabaseName)
@@ -50,7 +50,7 @@ enum AppWidgetDBManager {
     static func groupDB() -> FMDatabase? {
         let fileManager = FileManager.default
         let dummyDatabaseName = "glanceillustpersist.db"
-        if let directory = fileManager.containerURL(forSecurityApplicationGroupIdentifier: "group.pixez") {
+        if let directory = fileManager.containerURL(forSecurityApplicationGroupIdentifier: "group.com.duke486.pixez.ipad") {
             let newDirectory = directory.appendingPathComponent("DB")
             try? fileManager.createDirectory(at: newDirectory, withIntermediateDirectories: false, attributes: nil)
             let url = newDirectory.appendingPathComponent(dummyDatabaseName)

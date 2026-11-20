@@ -1,3 +1,4 @@
+import 'package:pixez/er/database_directory.dart';
 /*
  * Copyright (C) 2020. by perol_notsf, All rights reserved
  *
@@ -42,7 +43,7 @@ class BanIllustIdProvider {
   late Database db;
 
   Future open() async {
-    String databasesPath = (await getDatabasesPath());
+    String databasesPath = (await demoDatabaseDirectory());
     String path = join(databasesPath, 'banillustid.db');
     db = await openDatabase(path, version: 1,
         onCreate: (Database db, int version) async {

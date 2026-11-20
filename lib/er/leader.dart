@@ -44,7 +44,7 @@ class Leader {
       FluentLeader.pushUntilHome(context);
       return;
     }
-    Navigator.of(context).pushAndRemoveUntil(
+    Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
       MaterialPageRoute(
         builder: (context) =>
             Platform.isAndroid ? AndroidHelloPage() : HelloPage(),
@@ -166,7 +166,10 @@ class Leader {
           await accountProvider.insert(accountPersist);
           await accountStore.fetch();
           BotToast.showText(text: "Login Success");
-          if (Platform.isIOS || Platform.isLinux) pushUntilHome(context);
+          if (context.mounted && (Platform.isIOS || Platform.isLinux)) {
+            pushUntilHome(context);
+          }
+          return true;
         } catch (e) {
           LPrinter.d(e);
           BotToast.showText(text: e.toString());

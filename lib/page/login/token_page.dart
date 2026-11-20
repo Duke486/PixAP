@@ -50,8 +50,9 @@ class _TokenPageState extends State<TokenPage> {
       );
       await accountProvider.insert(accountPersist);
       await accountStore.fetch();
-      Leader.pushUntilHome(context);
+      if (mounted) Leader.pushUntilHome(context);
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         errorMessage = e.toString();
       });

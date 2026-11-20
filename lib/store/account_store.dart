@@ -1,3 +1,5 @@
+import 'package:pixez/page/hello/setting/demo_mode.dart';
+import 'package:pixez/network/demo_catalog.dart';
 /*
  * Copyright (C) 2020. by perol_notsf, All rights reserved
  *
@@ -63,6 +65,11 @@ abstract class _AccountStoreBase with Store {
 
   @action
   Future<void> fetch() async {
+    if (DemoMode.active) {
+      accounts.clear();
+      now = DemoCatalog.instance.account;
+      return;
+    }
     feching = true;
     try {
       await accountProvider.open();

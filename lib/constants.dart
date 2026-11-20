@@ -17,6 +17,11 @@
 import 'dart:io';
 
 class Constants {
+  static const appleAppName = 'PixAP';
+  static const appleAppTagline = '果味的PixEz';
+  static bool get hasAppleBranding => Platform.isIOS || Platform.isMacOS;
+  static String get displayName => hasAppleBranding ? appleAppName : 'PixEz';
+
   static const String no_h = 'assets/images/h_long.jpg';
   static String tagName = "0.9.114";
   static const isGooglePlay = bool.fromEnvironment(

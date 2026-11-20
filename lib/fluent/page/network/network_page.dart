@@ -7,9 +7,13 @@ import 'package:pixez/network/network_mode.dart';
 
 class NetworkPage extends StatefulWidget {
   final bool? automaticallyImplyLeading;
+  final bool embedded;
 
-  const NetworkPage({Key? key, this.automaticallyImplyLeading})
-    : super(key: key);
+  const NetworkPage({
+    Key? key,
+    this.automaticallyImplyLeading,
+    this.embedded = false,
+  }) : super(key: key);
 
   @override
   _NetworkPageState createState() => _NetworkPageState();
@@ -35,9 +39,10 @@ class _NetworkPageState extends State<NetworkPage> {
   @override
   Widget build(BuildContext context) {
     return ScaffoldPage(
+      backgroundColor: widget.embedded ? Colors.transparent : null,
       header: PageHeader(title: Text(I18n.of(context).network)),
       content: Observer(
-        builder: (context) => Column(
+        builder: (context) => ListView(
           children: [
             ListTile(title: Text(I18n.of(context).network_tip)),
             _buildNetworkModeSetting(context),

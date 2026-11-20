@@ -17,7 +17,6 @@
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:pixez/i18n.dart';
 import 'package:pixez/main.dart';
-import 'package:pixez/page/about/languages.dart';
 
 class InitPage extends StatefulWidget {
   @override
@@ -25,32 +24,33 @@ class InitPage extends StatefulWidget {
 }
 
 class _InitPageState extends State<InitPage> {
-  final languageList = Languages.map((e) => e.language).toList();
-  var currentIndex = 0;
+  final languageList = userSetting.languageList;
 
   @override
   Widget build(BuildContext context) {
     return ScaffoldPage(
+      backgroundColor: Colors.transparent,
       header: PageHeader(title: Text(I18n.of(context).select_language)),
       content: Center(
         child: RadioGroup<int>(
-          groupValue: currentIndex,
+          groupValue: userSetting.languageNum,
           onChanged: (v) async {
             if (v == null) return;
             await userSetting.setLanguageNum(v);
-            currentIndex = v;
-            setState(() {});
+            if (mounted) setState(() {});
           },
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              for (int i = 0; i < languageList.length; i++) ...[
-                RadioButton(value: i, content: Text(languageList[i])),
-                if (i != languageList.length - 1) const SizedBox(height: 8),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (int i = 0; i < languageList.length; i++) ...[
+                  RadioButton(value: i, content: Text(languageList[i])),
+                  if (i != languageList.length - 1) const SizedBox(height: 8),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ),

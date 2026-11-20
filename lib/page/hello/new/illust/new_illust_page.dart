@@ -26,8 +26,16 @@ import 'package:pixez/network/api_client.dart';
 
 class NewIllustPage extends StatefulWidget {
   final String restrict;
+  final double topInset;
+  final bool showFilter;
+  static const filterHeight = 45.0;
 
-  const NewIllustPage({Key? key, this.restrict = "all"}) : super(key: key);
+  const NewIllustPage({
+    Key? key,
+    this.restrict = "all",
+    this.topInset = 0,
+    this.showFilter = true,
+  }) : super(key: key);
 
   @override
   _NewIllustPageState createState() => _NewIllustPageState();
@@ -41,15 +49,20 @@ class _NewIllustPageState extends State<NewIllustPage> {
   @override
   void initState() {
     _scrollController = ScrollController();
-    futureGet = ApiForceSource(
-        futureGet: (e) => apiClient.getFollowIllusts(widget.restrict, force: e),
-        glanceKey: "follow_illust");
+    _setSource(widget.restrict);
     super.initState();
     subscription = topStore.topStream.listen((event) {
       if (event == "301") {
-        _scrollController.position.jumpTo(0);
+        if (_scrollController.hasClients) _scrollController.jumpTo(0);
       }
     });
+  }
+
+  void _setSource(String restrict) {
+    futureGet = ApiForceSource(
+      futureGet: (force) => apiClient.getFollowIllusts(restrict, force: force),
+      glanceKey: 'follow_illust',
+    );
   }
 
   @override
@@ -61,113 +74,96 @@ class _NewIllustPageState extends State<NewIllustPage> {
 
   @override
   Widget build(BuildContext context) {
+    final filter = SortGroup(
+      onChange: (int index) {
+        final restrict = ['all', 'public', 'private'][index];
+        setState(() => _setSource(restrict));
+      },
+      children: [
+        I18n.of(context).all,
+        I18n.of(context).public,
+        I18n.of(context).private,
+      ],
+    );
     return Stack(
       children: [
         LightingList(
           source: futureGet,
           scrollController: _scrollController,
-          header: Container(
-            height: 45.0,
-          ),
-          portal: "new",
+          topInset: widget.topInset,
+          header: widget.showFilter
+              ? const SizedBox(height: NewIllustPage.filterHeight)
+              : null,
+          portal: 'new',
         ),
-        Align(
-          alignment: Alignment.topCenter,
-          child: Container(
-            child: SortGroup(
-              onChange: (index) {
-                if (index == 0)
-                  setState(() {
-                    futureGet = ApiForceSource(
-                        futureGet: (e) =>
-                            apiClient.getFollowIllusts('all', force: e),
-                        glanceKey: "follow_illust");
-                  });
-                if (index == 1)
-                  setState(() {
-                    futureGet = ApiForceSource(
-                        futureGet: (e) =>
-                            apiClient.getFollowIllusts('public', force: e),
-                        glanceKey: "follow_illust");
-                  });
-                if (index == 2)
-                  setState(() {
-                    futureGet = ApiForceSource(
-                        futureGet: (e) =>
-                            apiClient.getFollowIllusts('private', force: e),
-                        glanceKey: "follow_illust");
-                  });
-              },
-              children: [
-                I18n.of(context).all,
-                I18n.of(context).public,
-                I18n.of(context).private
-              ],
-            ),
-          ),
-        )
+        if (widget.showFilter)
+          Align(alignment: Alignment.topCenter, child: filter),
       ],
     );
   }
 
   Container buildContainer(BuildContext context) {
     return Container(
-        child: Align(
-      alignment: Alignment.centerRight,
-      child: IconButton(
+      child: Align(
+        alignment: Alignment.centerRight,
+        child: IconButton(
           icon: Icon(Icons.list),
           onPressed: () {
             showModalBottomSheet(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.vertical(
-                    top: Radius.circular(16),
-                  ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+              ),
+              context: context,
+              builder: (context) => SafeArea(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    ListTile(
+                      title: Text(I18n.of(context).all),
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        setState(() {
+                          futureGet = ApiForceSource(
+                            futureGet: (e) =>
+                                apiClient.getFollowIllusts('all', force: e),
+                            glanceKey: "follow_illust",
+                          );
+                        });
+                      },
+                    ),
+                    ListTile(
+                      title: Text(I18n.of(context).public),
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        setState(() {
+                          futureGet = ApiForceSource(
+                            futureGet: (e) =>
+                                apiClient.getFollowIllusts('public', force: e),
+                            glanceKey: "follow_illust",
+                          );
+                        });
+                      },
+                    ),
+                    ListTile(
+                      title: Text(I18n.of(context).private),
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        setState(() {
+                          futureGet = ApiForceSource(
+                            futureGet: (e) =>
+                                apiClient.getFollowIllusts('private', force: e),
+                            glanceKey: "follow_illust",
+                          );
+                        });
+                      },
+                    ),
+                  ],
                 ),
-                context: context,
-                builder: (context) => SafeArea(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: <Widget>[
-                          ListTile(
-                            title: Text(I18n.of(context).all),
-                            onTap: () {
-                              Navigator.of(context).pop();
-                              setState(() {
-                                futureGet = ApiForceSource(
-                                    futureGet: (e) => apiClient
-                                        .getFollowIllusts('all', force: e),
-                                    glanceKey: "follow_illust");
-                              });
-                            },
-                          ),
-                          ListTile(
-                            title: Text(I18n.of(context).public),
-                            onTap: () {
-                              Navigator.of(context).pop();
-                              setState(() {
-                                futureGet = ApiForceSource(
-                                    futureGet: (e) => apiClient
-                                        .getFollowIllusts('public', force: e),
-                                    glanceKey: "follow_illust");
-                              });
-                            },
-                          ),
-                          ListTile(
-                            title: Text(I18n.of(context).private),
-                            onTap: () {
-                              Navigator.of(context).pop();
-                              setState(() {
-                                futureGet = ApiForceSource(
-                                    futureGet: (e) => apiClient
-                                        .getFollowIllusts('private', force: e),
-                                    glanceKey: "follow_illust");
-                              });
-                            },
-                          ),
-                        ],
-                      ),
-                    ));
-          }),
-    ));
+              ),
+            );
+          },
+        ),
+      ),
+    );
   }
 }

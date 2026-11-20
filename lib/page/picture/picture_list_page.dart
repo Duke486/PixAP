@@ -1,3 +1,4 @@
+import 'artwork_edge_back.dart';
 /*
  * Copyright (C) 2020. by perol_notsf, All rights reserved
  *
@@ -67,7 +68,7 @@ class _PictureListPageState extends State<PictureListPage> {
   @override
   Widget build(BuildContext context) {
     screenWidth = MediaQuery.of(context).size.width / 2;
-    return Observer(builder: (_) {
+    return ArtworkEdgeBack(child: Observer(builder: (_) {
       return MediaQuery(
         data: MediaQuery.of(context)
             .copyWith(gestureSettings: DeviceGestureSettings(touchSlop: 50)),
@@ -113,7 +114,7 @@ class _PictureListPageState extends State<PictureListPage> {
           ),
         ),
       );
-    });
+    }));
   }
 
   _onDrag(DragEndDetails details) {

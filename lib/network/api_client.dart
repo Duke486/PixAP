@@ -1,3 +1,5 @@
+import 'package:pixez/page/hello/setting/demo_mode.dart';
+import 'package:pixez/network/demo_catalog.dart';
 /*
  * Copyright (C) 2020. by perol_notsf, All rights reserved
  *
@@ -69,6 +71,7 @@ class ApiClient {
   );
 
   Future<Dio> createDioClient() async {
+    if (DemoMode.active) return httpClient;
     final compatibleClient = await r.RhttpCompatibleClient.create(
       settings: PixezNetworkSettings.forHost(
         BASE_API_URL_HOST,
@@ -119,6 +122,10 @@ class ApiClient {
           )
           ..interceptors.add(DioCacheInterceptor(options: options))
           ..interceptors.add(RefreshTokenInterceptor());
+    if (DemoMode.active) {
+      httpClient.interceptors.clear();
+      httpClient.interceptors.add(DemoCatalog.instance);
+    }
     if (kDebugMode) {
       httpClient.interceptors.add(
         LogInterceptor(

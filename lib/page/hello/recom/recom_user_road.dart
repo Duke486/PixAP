@@ -1,3 +1,4 @@
+import 'package:pixez/component/ipad_surface.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:pixez/component/pixiv_image.dart';
 import 'package:pixez/page/hello/recom/recom_user_page.dart';
@@ -24,7 +25,8 @@ class _RecomUserRoadState extends State<RecomUserRoad> {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
+    return Material(color: usesIPadLayout(context) ? Theme.of(context).scaffoldBackgroundColor : Colors.transparent, child: InkWell(
+      overlayColor: usesIPadLayout(context) ? const WidgetStatePropertyAll(Colors.transparent) : null,
       onTap: () {
         Navigator.of(context).push(MaterialPageRoute(builder: (context) {
           return RecomUserPage(
@@ -60,7 +62,7 @@ class _RecomUserRoadState extends State<RecomUserRoad> {
           ],
         ),
       ),
-    );
+    ));
   }
 
   Padding _buildUserList(int index) {

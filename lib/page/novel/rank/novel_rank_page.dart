@@ -1,3 +1,4 @@
+import 'package:pixez/component/ipad_surface.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:pixez/i18n.dart';
 import 'package:pixez/lighting/lighting_store.dart';
@@ -49,7 +50,7 @@ class _NovelRankPageState extends State<NovelRankPage>
       length: modeList.length,
       child: Scaffold(
         appBar: AppBar(
-          title: TabBar(
+          title: IPadPageTabs(tabs: TabBar(
               onTap: (i) {
                 HapticUtil.selectionClick();
               },
@@ -60,7 +61,7 @@ class _NovelRankPageState extends State<NovelRankPage>
                   Tab(
                     text: i,
                   )
-              ]),
+              ])),
           actions: [
             IconButton(
               icon: Icon(Icons.date_range),

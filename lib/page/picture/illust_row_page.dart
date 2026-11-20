@@ -1,3 +1,4 @@
+import 'package:pixez/component/ipad_surface.dart';
 /*
  * Copyright (C) 2020. by perol_notsf, All rights reserved
  *
@@ -203,7 +204,7 @@ class _IllustRowPageState extends State<IllustRowPage>
           builder: (context) {
             return Visibility(
               visible: _illustStore.errorMessage == null,
-              child: FloatingActionButton(
+              child: GalleryFavoriteButton(
                 heroTag: widget.id,
                 backgroundColor: Colors.white,
                 onPressed: () async {

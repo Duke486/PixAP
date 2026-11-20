@@ -21,6 +21,8 @@ import 'package:easy_refresh/easy_refresh.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:pixez/component/illust_card.dart';
+import 'package:pixez/component/ipad_surface.dart';
+import 'package:pixez/component/progressive_toolbar_blur.dart';
 import 'package:pixez/component/pixez_default_header.dart';
 import 'package:pixez/component/sort_group.dart';
 import 'package:pixez/exts.dart';
@@ -37,12 +39,17 @@ class BookmarkPage extends StatefulWidget {
   final int id;
   final String restrict;
   final bool isNested;
+  final double topInset;
+  final bool showFilter;
+  static const filterHeight = 45.0;
 
   const BookmarkPage({
     Key? key,
     required this.id,
     this.restrict = "public",
     this.isNested = false,
+    this.topInset = 0,
+    this.showFilter = true,
   }) : super(key: key);
 
   @override
@@ -51,24 +58,25 @@ class BookmarkPage extends StatefulWidget {
 
 class _BookmarkPageState extends State<BookmarkPage> {
   late LightSource futureGet;
-  String restrict = 'public';
   late ScrollController _scrollController;
   late StreamSubscription<String> subscription;
-  String? currentTag;
 
   @override
   void initState() {
     _scrollController = ScrollController();
-    restrict = widget.restrict;
-    futureGet = ApiForceSource(
-      futureGet: (e) => apiClient.getBookmarksIllust(widget.id, restrict, null),
-    );
+    _setSource(widget.restrict);
     super.initState();
     subscription = topStore.topStream.listen((event) {
       if (event == "302") {
         if (_scrollController.hasClients) _scrollController.position.jumpTo(0);
       }
     });
+  }
+
+  void _setSource(String restrict) {
+    futureGet = ApiForceSource(
+      futureGet: (_) => apiClient.getBookmarksIllust(widget.id, restrict, null),
+    );
   }
 
   @override
@@ -88,9 +96,24 @@ class _BookmarkPageState extends State<BookmarkPage> {
               source: futureGet,
               scrollController: _scrollController,
               isNested: widget.isNested,
-              header: Container(height: 45),
+              topInset: widget.topInset,
+              header: widget.showFilter
+                  ? const SizedBox(height: BookmarkPage.filterHeight)
+                  : null,
             ),
-            buildTopChip(context),
+            if (widget.showFilter && usesIPadLayout(context))
+              const Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                height: BookmarkPage.filterHeight,
+                child: ProgressiveToolbarBlur(),
+              ),
+            if (widget.showFilter)
+              Align(
+                alignment: Alignment.topCenter,
+                child: buildTopChip(context),
+              ),
           ],
         );
       }
@@ -105,84 +128,11 @@ class _BookmarkPageState extends State<BookmarkPage> {
   }
 
   Widget buildTopChip(BuildContext context) {
-    return Align(
-      alignment: Alignment.topCenter,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          SortGroup(
-            children: [I18n.of(context).public, I18n.of(context).private],
-            onChange: (index) {
-              if (index == 0)
-                setState(() {
-                  futureGet = ApiForceSource(
-                    futureGet: (bool e) => apiClient.getBookmarksIllust(
-                      widget.id,
-                      restrict = 'public',
-                      currentTag,
-                    ),
-                  );
-                });
-              if (index == 1)
-                setState(() {
-                  futureGet = ApiForceSource(
-                    futureGet: (bool e) => apiClient.getBookmarksIllust(
-                      widget.id,
-                      restrict = 'private',
-                      currentTag,
-                    ),
-                  );
-                });
-            },
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0),
-            child: GestureDetector(
-              onTap: () async {
-                final result = await Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => UserBookmarkTagPage(currentTag: currentTag),
-                  ),
-                );
-                if (result != null) {
-                  String? tag = result['tag'];
-                  String restrict = result['restrict'];
-                  setState(() {
-                    currentTag = tag;
-                    futureGet = ApiForceSource(
-                      futureGet: (bool e) => apiClient.getBookmarksIllust(
-                        widget.id,
-                        restrict,
-                        tag,
-                      ),
-                    );
-                  });
-                }
-              },
-              behavior: HitTestBehavior.opaque,
-              child: Chip(
-                label: Row(
-                  children: [
-                    Icon(Icons.tag, size: 18),
-                    if (currentTag != null)
-                      Padding(
-                        padding: const EdgeInsets.only(left: 8.0),
-                        child: Text(
-                          currentTag!,
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                      ),
-                  ],
-                ),
-                backgroundColor: Theme.of(context).cardColor,
-                elevation: 4.0,
-                padding: EdgeInsets.all(0.0),
-              ),
-            ),
-          ),
-        ],
-      ),
+    return SortGroup(
+      children: [I18n.of(context).public, I18n.of(context).private],
+      onChange: (index) {
+        setState(() => _setSource(index == 0 ? 'public' : 'private'));
+      },
     );
   }
 }
@@ -231,9 +181,12 @@ class _BookMarkNestedPageState extends State<BookMarkNestedPage> {
   }
 
   Widget _buildWorks(BuildContext context) {
+    final landscapeTablet = usesIPadLayout(context) &&
+        MediaQuery.orientationOf(context) == Orientation.landscape;
     return SafeArea(
       top: false,
       bottom: false,
+      right: !landscapeTablet,
       child: Builder(
         builder: (BuildContext context) {
           return EasyRefresh.builder(
@@ -279,9 +232,7 @@ class _BookMarkNestedPageState extends State<BookMarkNestedPage> {
                       if (userIsMe)
                         SliverPersistentHeader(
                           delegate: SliverChipDelegate(
-                            Container(
-                              child: Center(child: buildTopChip(context)),
-                            ),
+                            Center(child: buildTopChip(context)),
                           ),
                           pinned: true,
                         ),
@@ -383,6 +334,7 @@ class _BookMarkNestedPageState extends State<BookMarkNestedPage> {
     return SliverChildBuilderDelegate((BuildContext context, int index) {
       return IllustCard(
         lightingStore: _store,
+        compactLandscapeSpacing: true,
         store: _store.iStores[index],
         iStores: _store.iStores,
       );

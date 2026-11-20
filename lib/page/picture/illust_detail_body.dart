@@ -14,6 +14,7 @@
  *
  */
 
+import 'package:pixez/component/ipad_surface.dart';
 import 'package:flutter/gestures.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
@@ -209,16 +210,19 @@ class IllustDetailBody extends StatelessWidget {
             ),
             Padding(
               padding: const EdgeInsets.all(8.0),
-              child: TextButton(
-                child: Text(I18n.of(context).view_comment,
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodyLarge!),
-                onPressed: () {
-                  Navigator.of(context).push(MaterialPageRoute(
-                      builder: (BuildContext context) => CommentPage(
-                            id: illust.id,
-                          )));
-                },
+              child: Center(
+                child: usesIPadLayout(context)
+                    ? ArtworkCommentButton(id: illust.id)
+                    : TextButton(
+                        child: Text(
+                          I18n.of(context).view_comment,
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.bodyLarge!,
+                        ),
+                        onPressed: () => Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => CommentPage(id: illust.id)),
+                        ),
+                      ),
               ),
             )
           ],

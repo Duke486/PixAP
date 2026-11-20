@@ -21,6 +21,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:pixez/component/illust_card.dart';
+import 'package:pixez/component/ipad_surface.dart';
 import 'package:pixez/component/pixez_default_header.dart';
 import 'package:pixez/component/sort_group.dart';
 import 'package:pixez/exts.dart';
@@ -119,9 +120,12 @@ class _WorksPageState extends State<WorksPage> {
   }
 
   Widget _buildWorks(BuildContext context) {
+    final landscapeTablet = usesIPadLayout(context) &&
+        MediaQuery.orientationOf(context) == Orientation.landscape;
     return SafeArea(
         top: false,
         bottom: false,
+        right: !landscapeTablet,
         child: Builder(
           builder: (BuildContext context) {
             return EasyRefresh.builder(
@@ -207,6 +211,7 @@ class _WorksPageState extends State<WorksPage> {
     return SliverChildBuilderDelegate((BuildContext context, int index) {
       return IllustCard(
         lightingStore: _store,
+        compactLandscapeSpacing: true,
         store: _store.iStores[index],
         iStores: _store.iStores,
       );

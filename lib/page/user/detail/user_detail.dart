@@ -14,6 +14,7 @@
  *
  */
 
+import 'package:pixez/component/ipad_surface.dart';
 import 'dart:io';
 
 import 'package:material_ui/material_ui.dart';
@@ -30,12 +31,12 @@ class UserDetailPage extends StatefulWidget {
   final bool isNewNested;
   final bool? isNovel;
 
-  UserDetailPage(
-      {Key? key,
-      required this.userDetail,
-      this.isNewNested = false,
-      this.isNovel})
-      : super(key: key);
+  UserDetailPage({
+    Key? key,
+    required this.userDetail,
+    this.isNewNested = false,
+    this.isNovel,
+  }) : super(key: key);
 
   @override
   _UserDetailPageState createState() => _UserDetailPageState();
@@ -66,16 +67,135 @@ class _UserDetailPageState extends State<UserDetailPage> {
           onTap: () {
             FocusManager.instance.primaryFocus?.unfocus();
           },
-          child: Builder(builder: (context) {
-            return _buildScrollView(context, detail, profile, public);
-          }),
+          child: Builder(
+            builder: (context) {
+              return _buildScrollView(context, detail, profile, public);
+            },
+          ),
         ),
       );
     return _buildScrollView(context, detail, profile, public);
   }
 
-  CustomScrollView _buildScrollView(BuildContext context, UserDetail? detail,
-      Profile? profile, Profile_publicity? public) {
+  CustomScrollView _buildScrollView(
+    BuildContext context,
+    UserDetail? detail,
+    Profile? profile,
+    Profile_publicity? public,
+  ) {
+    final rows = <DataRow>[
+      DataRow(
+        cells: [
+          DataCell(Text(I18n.of(context).painter_id)),
+          DataCell(
+            Text(detail?.user.id.toString() ?? ""),
+            onTap: () {
+              try {
+                Clipboard.setData(
+                  ClipboardData(text: detail!.user.id.toString()),
+                );
+              } catch (e) {}
+            },
+          ),
+        ],
+      ),
+      DataRow(
+        cells: [
+          DataCell(Text(I18n.of(context).total_follow_users)),
+          DataCell(
+            Text(detail?.profile.total_follow_users.toString() ?? ""),
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (BuildContext context) {
+                    return Scaffold(
+                      appBar: AppBar(title: Text(I18n.of(context).followed)),
+                      body: detail == null
+                          ? Container()
+                          : FollowList(id: detail.user.id, isNovel: _isNovel),
+                    );
+                  },
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+      DataRow(
+        cells: [
+          DataCell(Text(I18n.of(context).total_mypixiv_users)),
+          DataCell(
+            Text(detail?.profile.total_mypixiv_users.toString() ?? ""),
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (BuildContext context) {
+                    return Scaffold(
+                      appBar: AppBar(),
+                      body: detail == null
+                          ? Container()
+                          : FollowList(id: detail.user.id, isFollowMe: true),
+                    );
+                  },
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+      DataRow(
+        cells: [
+          DataCell(Text(I18n.of(context).twitter_account)),
+          DataCell(
+            Text(profile?.twitter_account ?? ""),
+            onTap: () async {
+              final url = profile?.twitter_url;
+              if (url != null) {
+                try {
+                  if (Platform.isIOS) {
+                    await launchUrlString(
+                      url,
+                      mode: LaunchMode.externalApplication,
+                    );
+                  } else {
+                    await launchUrlString(url);
+                  }
+                } catch (e) {
+                  SharePlus.instance.share(ShareParams(text: url));
+                }
+              }
+            },
+          ),
+        ],
+      ),
+      DataRow(
+        cells: [
+          DataCell(Text(I18n.of(context).gender)),
+          DataCell(Text(detail?.profile.gender ?? "")),
+        ],
+      ),
+      DataRow(
+        cells: [
+          DataCell(Text(I18n.of(context).job)),
+          DataCell(Text(detail?.profile.job ?? "")),
+        ],
+      ),
+      DataRow(
+        cells: [
+          DataCell(Text('Pawoo')),
+          DataCell(
+            Text(public?.pawoo != null ? 'Link' : 'none'),
+            onTap: () async {
+              if (public?.pawoo == null || !public!.pawoo) return;
+              var url = detail?.profile.pawoo_url;
+              try {
+                await launchUrlString(url!);
+              } catch (e) {}
+            },
+          ),
+        ],
+      ),
+    ];
     return CustomScrollView(
       key: PageStorageKey<String>("user_detail"),
       slivers: [
@@ -83,127 +203,136 @@ class _UserDetailPageState extends State<UserDetailPage> {
           SliverOverlapInjector(
             handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
           ),
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Card(
-              child: SelectionArea(
+        if (usesIPadLayout(context))
+          SliverToBoxAdapter(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 760),
                 child: Padding(
+                  padding: const EdgeInsets.fromLTRB(22, 18, 22, 32),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if ((detail?.user.comment ?? '').trim().isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 18),
+                          child: SelectionArea(
+                            child: SelectableHtml(data: detail!.user.comment!),
+                          ),
+                        ),
+                      Text(
+                        detail?.user.name ?? '',
+                        style: Theme.of(context).textTheme.headlineSmall,
+                      ),
+                      const SizedBox(height: 14),
+                      LayoutBuilder(
+                        builder: (context, box) {
+                          final width = box.maxWidth >= 480
+                              ? (box.maxWidth - 12) / 2
+                              : box.maxWidth;
+                          return Wrap(
+                            spacing: 12,
+                            runSpacing: 10,
+                            children: [
+                              for (final row in rows)
+                                SizedBox(
+                                  width: width,
+                                  child: Material(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.surfaceContainerLow,
+                                    borderRadius: BorderRadius.circular(14),
+                                    clipBehavior: Clip.antiAlias,
+                                    child: InkWell(
+                                      onTap: row.cells.last.onTap,
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 16,
+                                          vertical: 12,
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  DefaultTextStyle(
+                                                    style: Theme.of(
+                                                      context,
+                                                    ).textTheme.labelMedium!,
+                                                    child:
+                                                        row.cells.first.child,
+                                                  ),
+                                                  const SizedBox(height: 4),
+                                                  DefaultTextStyle(
+                                                    style: Theme.of(
+                                                      context,
+                                                    ).textTheme.titleMedium!,
+                                                    child: row.cells.last.child,
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            if (row.cells.last.onTap != null)
+                                              const Icon(
+                                                Icons.chevron_right,
+                                                size: 16,
+                                              ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          )
+        else ...[
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Card(
+                child: SelectionArea(
+                  child: Padding(
                     padding: const EdgeInsets.all(8.0),
-                    child: widget.userDetail?.user.comment != null &&
+                    child:
+                        widget.userDetail?.user.comment != null &&
                             widget.userDetail?.user.comment!.isNotEmpty == true
                         ? SelectableHtml(data: widget.userDetail!.user.comment!)
-                        : SelectableHtml(
-                            data: '~',
-                          )),
+                        : SelectableHtml(data: '~'),
+                  ),
+                ),
               ),
             ),
           ),
-        ),
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: DataTable(
-              columns: <DataColumn>[
-                DataColumn(label: Text(I18n.of(context).nickname)),
-                DataColumn(
-                    label: Expanded(child: Text(detail?.user.name ?? ""))),
-              ],
-              rows: <DataRow>[
-                DataRow(cells: [
-                  DataCell(Text(I18n.of(context).painter_id)),
-                  DataCell(Text(detail?.user.id.toString() ?? ""), onTap: () {
-                    try {
-                      Clipboard.setData(
-                          ClipboardData(text: detail!.user.id.toString()));
-                    } catch (e) {}
-                  }),
-                ]),
-                DataRow(cells: [
-                  DataCell(Text(I18n.of(context).total_follow_users)),
-                  DataCell(
-                      Text(detail?.profile.total_follow_users.toString() ?? ""),
-                      onTap: () {
-                    Navigator.of(context).push(
-                        MaterialPageRoute(builder: (BuildContext context) {
-                      return Scaffold(
-                        appBar: AppBar(
-                          title: Text(I18n.of(context).followed),
-                        ),
-                        body: detail == null
-                            ? Container()
-                            : FollowList(id: detail.user.id, isNovel: _isNovel),
-                      );
-                    }));
-                  }),
-                ]),
-                DataRow(cells: [
-                  DataCell(Text(I18n.of(context).total_mypixiv_users)),
-                  DataCell(
-                      Text(
-                          detail?.profile.total_mypixiv_users.toString() ?? ""),
-                      onTap: () {
-                    Navigator.of(context).push(
-                        MaterialPageRoute(builder: (BuildContext context) {
-                      return Scaffold(
-                        appBar: AppBar(),
-                        body: detail == null
-                            ? Container()
-                            : FollowList(
-                                id: detail.user.id,
-                                isFollowMe: true,
-                              ),
-                      );
-                    }));
-                  }),
-                ]),
-                DataRow(cells: [
-                  DataCell(Text(I18n.of(context).twitter_account)),
-                  DataCell(Text(profile?.twitter_account ?? ""),
-                      onTap: () async {
-                    final url = profile?.twitter_url;
-                    if (url != null) {
-                      try {
-                        if (Platform.isIOS) {
-                          await launchUrlString(url,
-                              mode: LaunchMode.externalApplication);
-                        } else {
-                          await launchUrlString(url);
-                        }
-                      } catch (e) {
-                        SharePlus.instance.share(ShareParams(text: url));
-                      }
-                    }
-                  }),
-                ]),
-                DataRow(cells: [
-                  DataCell(Text(I18n.of(context).gender)),
-                  DataCell(Text(detail?.profile.gender ?? "")),
-                ]),
-                DataRow(cells: [
-                  DataCell(Text(I18n.of(context).job)),
-                  DataCell(Text(detail?.profile.job ?? "")),
-                ]),
-                DataRow(cells: [
-                  DataCell(Text('Pawoo')),
-                  DataCell(Text(public?.pawoo != null ? 'Link' : 'none'),
-                      onTap: () async {
-                    if (public?.pawoo == null || !public!.pawoo) return;
-                    var url = detail?.profile.pawoo_url;
-                    try {
-                      await launchUrlString(url!);
-                    } catch (e) {}
-                  }),
-                ]),
-              ],
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: IPadSurface(
+                maxWidth: 800,
+                glass: false,
+                child: DataTable(
+                  columns: <DataColumn>[
+                    DataColumn(label: Text(I18n.of(context).nickname)),
+                    DataColumn(
+                      label: Expanded(child: Text(detail?.user.name ?? "")),
+                    ),
+                  ],
+                  rows: rows,
+                ),
+              ),
             ),
           ),
-        ),
-        SliverToBoxAdapter(
-          child: Container(
-            height: 200,
-          ),
-        )
+          SliverToBoxAdapter(child: Container(height: 200)),
+        ],
       ],
     );
   }

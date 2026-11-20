@@ -36,9 +36,45 @@ import 'package:pixez/supportor_plugin.dart';
 import 'package:pixez/utils/haptic_util.dart';
 import 'package:share_plus/share_plus.dart';
 
+class ArtworkCommentButton extends StatelessWidget {
+  const ArtworkCommentButton({
+    super.key,
+    required this.id,
+    this.count = '',
+  });
+
+  final int id;
+  final String count;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return TextButton.icon(
+      style: TextButton.styleFrom(
+        minimumSize: const Size(0, 44),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        backgroundColor: colors.surfaceContainerHigh,
+        foregroundColor: colors.onSurface,
+      ),
+      onPressed: () => showArtworkComments(context, id),
+      icon: const Icon(Icons.chat_bubble_outline, size: 17),
+      label: Text('${I18n.of(context).view_comment}$count'),
+    );
+  }
+}
+
+Future<void> showArtworkComments(BuildContext context, int id) =>
+    showDialog<void>(context: context, builder: (dialogContext) {
+      final size = MediaQuery.sizeOf(dialogContext);
+      return Dialog(clipBehavior: Clip.antiAlias,
+        child: SizedBox(width: size.width * .48, height: size.height * .8,
+          child: CommentPage(id: id, inPanel: true)));
+    });
+
 enum CommentArtWorkType { ILLUST, NOVEL }
 
 class CommentPage extends StatefulWidget {
+  final bool inPanel;
   final int id;
   final bool isReplay;
   final int? pId;
@@ -47,7 +83,7 @@ class CommentPage extends StatefulWidget {
 
   const CommentPage(
       {Key? key,
-      required this.id,
+      required this.id, this.inPanel = false,
       this.isReplay = false,
       this.pId,
       this.name,
@@ -172,7 +208,10 @@ class _CommentPageState extends State<CommentPage> {
   Container _buildBody(BuildContext context) {
     return Container(
       child: Scaffold(
+        backgroundColor: widget.inPanel ? Colors.transparent : null,
         appBar: AppBar(
+          backgroundColor: widget.inPanel ? Colors.transparent : null,
+          leading: widget.inPanel ? const CloseButton() : null,
           title: Text('${I18n.of(context).view_comment}'),
         ),
         body: SafeArea(

@@ -25,11 +25,22 @@ import 'package:pixez/page/painter/painter_list.dart';
 
 class FollowList extends StatefulWidget {
   final int id;
+  final double topInset;
+  final bool showFilter;
+  final String restrict;
+  static const filterHeight = 45.0;
   final bool? isNovel;
   final bool? isFollowMe;
 
-  FollowList({Key? key, required this.id, this.isNovel, this.isFollowMe})
-      : super(key: key);
+  FollowList({
+    Key? key,
+    required this.id,
+    this.isNovel,
+    this.isFollowMe,
+    this.topInset = 0,
+    this.showFilter = true,
+    this.restrict = 'public',
+  }) : super(key: key);
 
   @override
   _FollowListState createState() => _FollowListState();
@@ -37,7 +48,6 @@ class FollowList extends StatefulWidget {
 
 class _FollowListState extends State<FollowList> {
   late FutureGet futureGet;
-  String restrict = 'public';
   bool _isNovel = false;
   bool _isFollowMe = false;
 
@@ -50,31 +60,30 @@ class _FollowListState extends State<FollowList> {
   void initState() {
     _isNovel = widget.isNovel ?? false;
     _isFollowMe = widget.isFollowMe ?? false;
-    futureGet = _isFollowMe
-        ? () => apiClient.getFollowUser(widget.id, restrict)
-        : () => apiClient.getUserFollowing(widget.id, restrict);
+    _setSource(widget.restrict);
     super.initState();
   }
 
+  void _setSource(String restrict) {
+    futureGet = _isFollowMe
+        ? () => apiClient.getFollowUser(widget.id, restrict)
+        : () => apiClient.getUserFollowing(widget.id, restrict);
+  }
+
   Widget buildHeader() {
-    return Observer(builder: (_) {
-      return Visibility(
-        visible: int.parse(accountStore.now!.userId) == widget.id,
-        child: Align(
-          alignment: Alignment.topCenter,
+    return Observer(
+      builder: (_) {
+        return Visibility(
+          visible: int.parse(accountStore.now!.userId) == widget.id,
           child: SortGroup(
             children: [I18n.of(context).public, I18n.of(context).private],
             onChange: (index) {
-              setState(() {
-                restrict = index == 0 ? 'public' : 'private';
-                futureGet =
-                    () => apiClient.getUserFollowing(widget.id, restrict);
-              });
+              setState(() => _setSource(index == 0 ? 'public' : 'private'));
             },
           ),
-        ),
-      );
-    });
+        );
+      },
+    );
   }
 
   @override
@@ -85,10 +94,15 @@ class _FollowListState extends State<FollowList> {
           futureGet: futureGet,
           isNovel: _isNovel,
           header: Container(
-            height: _isFollowMe ? 0 : 45,
+            height:
+                widget.topInset +
+                (_isFollowMe || !widget.showFilter
+                    ? 0
+                    : FollowList.filterHeight),
           ),
         ),
-        if (!_isFollowMe) buildHeader(),
+        if (!_isFollowMe && widget.showFilter)
+          Align(alignment: Alignment.topCenter, child: buildHeader()),
       ],
     );
   }

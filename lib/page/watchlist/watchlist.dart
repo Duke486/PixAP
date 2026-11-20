@@ -13,7 +13,9 @@ import 'package:pixez/page/series/illust_series_page.dart';
 import 'package:pixez/page/watchlist/watchlist_notifier.dart';
 
 class WatchlistPage extends StatefulHookConsumerWidget {
-  const WatchlistPage({super.key});
+  const WatchlistPage({super.key, this.topInset = 0});
+
+  final double topInset;
 
   @override
   ConsumerState<ConsumerStatefulWidget> createState() => _State();
@@ -45,6 +47,8 @@ class _State extends ConsumerState<WatchlistPage> {
         return CustomScrollView(
           physics: physics,
           slivers: [
+            if (widget.topInset > 0)
+              SliverToBoxAdapter(child: SizedBox(height: widget.topInset)),
             SliverList(
                 delegate: SliverChildBuilderDelegate(
               (context, index) {

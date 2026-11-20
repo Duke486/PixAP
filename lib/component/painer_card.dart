@@ -1,3 +1,5 @@
+import 'package:pixez/component/card_reflection.dart';
+import 'package:pixez/component/ipad_surface.dart';
 /*
  * Copyright (C) 2020. by perol_notsf, All rights reserved
  *
@@ -66,14 +68,20 @@ class _PainterCardState extends State<PainterCard> {
         }));
         setState(() {});
       },
-      child: Card(
-        clipBehavior: Clip.antiAlias,
-        child: Container(
-          child: Column(
-            children: [_buildPreviewSlivers(context), buildPadding(context)],
-          ),
-        ),
-      ),
+      child: usesIPadLayout(context)
+        ? IPadGalleryCard(scrolling: true, child: Column(children: [_buildPreviewSlivers(context), Stack(children: [
+            Positioned.fill(child: Observer(builder: (_) {
+              final urls = isNovel ? _user.novels.take(3).map((n) => n.imageUrls.squareMedium)
+                : _user.illusts.take(3).map((i) => i.hIsNotAllow() ? null : i.imageUrls.squareMedium);
+              return CardReflection(style: artistReflection, images: [
+                for (final url in urls) url == null ? null : PixivProvider.url(url),
+                ...List<ImageProvider?>.filled(3 - urls.length, null),
+              ]);
+            })),
+            buildPadding(context),
+          ])]))
+        : Card(clipBehavior: Clip.antiAlias,
+            child: Column(children: [_buildPreviewSlivers(context), buildPadding(context)])),
     );
   }
 
@@ -153,7 +161,7 @@ class _PainterCardState extends State<PainterCard> {
         children: <Widget>[
           Hero(
             tag: _user.user.profileImageUrls.medium + this.hashCode.toString(),
-            child: PainterAvatar(
+            child: SizedBox.square(dimension: 60, child: PainterAvatar(
               url: _user.user.profileImageUrls.medium,
               id: _user.user.id,
               onTap: () {
@@ -171,13 +179,9 @@ class _PainterCardState extends State<PainterCard> {
                   );
                 }));
               },
-            ),
+            )),
           ),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Center(child: Text(_user.user.name)),
-          ),
-          Spacer(),
+          Expanded(child: Padding(padding: const EdgeInsets.symmetric(horizontal: 10), child: Text(_user.user.name, maxLines: 2, overflow: TextOverflow.ellipsis))),
           if (_user.user.isFollowed != null)
             UserFollowButton(
               id: _user.user.id,

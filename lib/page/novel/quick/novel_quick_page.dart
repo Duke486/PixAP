@@ -1,3 +1,4 @@
+import 'package:pixez/component/ipad_surface.dart';
 /*
  * Copyright (C) 2020. by perol_notsf, All rights reserved
  *
@@ -34,7 +35,7 @@ class _NovelQuickPageState extends State<NovelQuickPage> {
       length: 3,
       child: Scaffold(
         appBar: AppBar(
-          title: TabBar(
+          title: IPadPageTabs(tabs: TabBar(
             onTap: (i) {
               HapticUtil.selectionClick();
             },
@@ -50,7 +51,7 @@ class _NovelQuickPageState extends State<NovelQuickPage> {
               ),
             ],
             indicatorSize: TabBarIndicatorSize.label,
-          ),
+          )),
         ),
         body: TabBarView(children: [
           NovelNewPage(),

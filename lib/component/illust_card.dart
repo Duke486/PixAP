@@ -1,3 +1,4 @@
+import 'package:pixez/component/card_reflection.dart';
 /*
  * Copyright (C) 2020. by perol_notsf, All rights reserved
  *
@@ -14,6 +15,7 @@
  *
  */
 
+import 'package:pixez/component/ipad_surface.dart';
 import 'dart:io';
 
 import 'package:bot_toast/bot_toast.dart';
@@ -40,6 +42,7 @@ class IllustCard extends StatefulWidget {
   final IllustStore store;
   final List<IllustStore>? iStores;
   final bool needToBan;
+  final bool compactLandscapeSpacing;
   final LightingStore lightingStore;
 
   IllustCard({
@@ -47,6 +50,7 @@ class IllustCard extends StatefulWidget {
     required this.lightingStore,
     this.iStores,
     this.needToBan = false,
+    this.compactLandscapeSpacing = false,
   });
 
   @override
@@ -168,8 +172,7 @@ class _IllustCardState extends State<IllustCard> {
     return Text('');
   }
 
-  Widget _buildPic(String tag, bool tooLong) {
-    final url = switch (userSetting.feedPreviewQuality) {
+  String get _previewUrl => switch (userSetting.feedPreviewQuality) {
       0 => store.illusts!.imageUrls.medium,
       1 => store.illusts!.imageUrls.large,
       2 =>
@@ -177,6 +180,8 @@ class _IllustCardState extends State<IllustCard> {
             store.illusts!.metaPages[0].imageUrls!.original,
       _ => store.illusts!.imageUrls.medium,
     };
+  Widget _buildPic(String tag, bool tooLong) {
+    final url = _previewUrl;
     final quality = IllustQualityExtension.fromValue(
       userSetting.feedPreviewQuality,
     );
@@ -204,11 +209,8 @@ class _IllustCardState extends State<IllustCard> {
     var radio = (tooLong)
         ? 1.0
         : store.illusts!.width.toDouble() / store.illusts!.height.toDouble();
-    return Card(
-      margin: EdgeInsets.all(8.0),
-      clipBehavior: Clip.antiAlias,
-      color: Theme.of(context).colorScheme.surface,
-      child: _buildAnimationWraper(
+    final tablet = usesIPadLayout(context);
+    final content = _buildAnimationWraper(
         context,
         Column(
           children: <Widget>[
@@ -256,7 +258,7 @@ class _IllustCardState extends State<IllustCard> {
                     },
                     behavior: HitTestBehavior.opaque,
                     child: Container(
-                      margin: EdgeInsets.only(left: 8, bottom: 4),
+                      margin: EdgeInsets.only(left: tablet ? 12 : 8, bottom: 4),
                       alignment: Alignment.centerLeft,
                       child: Text(
                         '${store.illusts?.series?.title ?? ''}',
@@ -269,8 +271,19 @@ class _IllustCardState extends State<IllustCard> {
             ),
           ],
         ),
-      ),
     );
+    if (tablet) {
+      final compactSpacing = widget.compactLandscapeSpacing &&
+          MediaQuery.orientationOf(context) == Orientation.landscape;
+      return IPadGalleryCard(
+        scrolling: true,
+        inset: 0,
+        horizontalMargin: compactSpacing ? 3 : 5,
+        child: content,
+      );
+    }
+    return Card(margin: const EdgeInsets.all(8), clipBehavior: Clip.antiAlias,
+      color: Theme.of(context).colorScheme.surface, child: content);
   }
 
   Widget _buildAIBadge() {
@@ -352,11 +365,13 @@ class _IllustCardState extends State<IllustCard> {
     return Container(
       child: Stack(
         children: <Widget>[
+          if (usesIPadLayout(context)) Positioned.fill(child: CardReflection(style: artworkReflection,
+            images: [PixivProvider.url(store.illusts!.height > store.illusts!.width * 3 ? store.illusts!.imageUrls.squareMedium : _previewUrl)])),
           Padding(
-            padding: const EdgeInsets.only(
-              left: 8.0,
+            padding: EdgeInsets.only(
+              left: usesIPadLayout(context) ? 12.0 : 8.0,
               right: 36.0,
-              top: 4,
+              top: usesIPadLayout(context) ? 6 : 4,
               bottom: 4,
             ),
             child: Column(
@@ -366,7 +381,7 @@ class _IllustCardState extends State<IllustCard> {
                   store.illusts!.title,
                   maxLines: 1,
                   overflow: TextOverflow.clip,
-                  style: Theme.of(context).textTheme.bodyMedium,
+                  style: usesIPadLayout(context) ? Theme.of(context).textTheme.titleSmall : Theme.of(context).textTheme.bodyMedium,
                   strutStyle: StrutStyle(forceStrutHeight: true, leading: 0),
                 ),
                 Text(

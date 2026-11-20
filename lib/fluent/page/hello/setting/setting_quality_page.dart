@@ -19,21 +19,18 @@ import 'dart:io';
 import 'package:bot_toast/bot_toast.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:material_ui/material_ui.dart' show CircleAvatar, Icons;
+import 'package:material_ui/material_ui.dart' show Icons;
 import 'package:flutter_mobx/flutter_mobx.dart';
-import 'package:pixez/fluent/component/pixez_button.dart';
 import 'package:pixez/constants.dart';
 import 'package:pixez/er/leader.dart';
 import 'package:pixez/er/updater.dart';
 import 'package:pixez/i18n.dart';
 import 'package:pixez/main.dart';
-import 'package:pixez/page/about/languages.dart';
 import 'package:pixez/fluent/page/hello/setting/copy_text_page.dart';
 import 'package:pixez/fluent/page/hello/setting/setting_cross_adapter_page.dart';
 import 'package:pixez/fluent/page/network/network_page.dart';
 import 'package:pixez/fluent/page/platform/platform_page.dart';
 import 'package:pixez/store/welcome_page_type.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class SettingQualityPage extends StatefulWidget {
   @override
@@ -42,14 +39,6 @@ class SettingQualityPage extends StatefulWidget {
 
 class _SettingQualityPageState extends State<SettingQualityPage>
     with TickerProviderStateMixin {
-  late Widget _languageTranlator;
-
-  @override
-  void initState() {
-    _buildLanguageTranlators();
-    super.initState();
-  }
-
   String _welcomePageLabel(BuildContext context, WelcomePageType type) {
     switch (type) {
       case WelcomePageType.home:
@@ -86,8 +75,8 @@ class _SettingQualityPageState extends State<SettingQualityPage>
               subtitle: Platform.isWindows
                   ? Text("For Windows", style: TextStyle(color: Colors.blue))
                   : Platform.isLinux
-                      ? Text("For Linux", style: TextStyle(color: Colors.orange))
-                      : null,
+                  ? Text("For Linux", style: TextStyle(color: Colors.orange))
+                  : null,
               onPressed: () {
                 showDialog(
                   context: context,
@@ -123,30 +112,17 @@ class _SettingQualityPageState extends State<SettingQualityPage>
           ),
           ListTile(
             leading: const Icon(FluentIcons.translate),
-            title: Text("Language"),
+            title: Text(I18n.of(context).select_language),
             trailing: Observer(
-              builder: (context) => Row(
-                children: [
-                  _languageTranlator,
-                  ComboBox<int>(
-                    value: userSetting.languageNum,
-                    items: Languages.map((e) => e.language)
-                        .toList()
-                        .asMap()
-                        .entries
-                        .map(
-                          (i) =>
-                              ComboBoxItem(child: Text(i.value), value: i.key),
-                        )
-                        .toList(),
-                    onChanged: (index) async {
-                      await userSetting.setLanguageNum(index!);
-                      setState(() {
-                        _buildLanguageTranlators();
-                      });
-                    },
-                  ),
+              builder: (context) => ComboBox<int>(
+                value: userSetting.languageNum,
+                items: [
+                  for (final entry in userSetting.languageList.asMap().entries)
+                    ComboBoxItem(value: entry.key, child: Text(entry.value)),
                 ],
+                onChanged: (index) {
+                  if (index != null) userSetting.setLanguageNum(index);
+                },
               ),
             ),
           ),
@@ -433,7 +409,8 @@ class _SettingQualityPageState extends State<SettingQualityPage>
             ListTile(
               title: Text(I18n.of(context).ignore_current_version_update),
               trailing: ToggleSwitch(
-                checked: Updater.result == Result.yes &&
+                checked:
+                    Updater.result == Result.yes &&
                     Updater.latestVersion != null &&
                     userSetting.ignoreUpdateVersion == Updater.latestVersion,
                 onChanged: (value) async {
@@ -505,31 +482,6 @@ class _SettingQualityPageState extends State<SettingQualityPage>
           ),
         ],
       ),
-    );
-  }
-
-  void _buildLanguageTranlators() {
-    final langsponsors = Languages[userSetting.languageNum].sponsors;
-    _languageTranlator = Row(
-      children: [
-        for (final langsponsor in langsponsors)
-          PixEzButton(
-            onPressed: () {
-              try {
-                launchUrl(Uri.parse(langsponsor.uri));
-              } catch (e) {}
-            },
-            child: Row(
-              children: <Widget>[
-                CircleAvatar(backgroundImage: NetworkImage(langsponsor.avatar)),
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Text(langsponsor.name),
-                ),
-              ],
-            ),
-          ),
-      ],
     );
   }
 }

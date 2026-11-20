@@ -1,3 +1,4 @@
+import 'package:pixez/er/database_directory.dart';
 import 'package:json_annotation/json_annotation.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'dart:convert' show json;
@@ -41,7 +42,7 @@ class KVProvider {
   late Database db;
 
   Future open() async {
-    String databasesPath = (await getDatabasesPath());
+    String databasesPath = (await demoDatabaseDirectory());
     String path = join(databasesPath, 'kvpair.db');
     db = await openDatabase(path, version: 1,
         onCreate: (Database db, int version) async {

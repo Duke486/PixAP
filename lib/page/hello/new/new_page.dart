@@ -14,11 +14,13 @@
  *
  */
 
+import 'package:pixez/component/ipad_surface.dart';
 import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
-import 'package:pixez/component/painter_avatar.dart';
+import 'package:pixez/component/sort_group.dart';
+import 'package:pixez/component/progressive_toolbar_blur.dart';
 import 'package:pixez/i18n.dart';
 import 'package:pixez/main.dart';
 import 'package:pixez/page/follow/follow_list.dart';
@@ -31,12 +33,12 @@ import 'package:pixez/utils/haptic_util.dart';
 class NewPage extends StatefulWidget {
   final String newRestrict, bookRestrict, painterRestrict;
 
-  const NewPage(
-      {Key? key,
-      this.newRestrict = "public",
-      this.bookRestrict = "public",
-      this.painterRestrict = "public"})
-      : super(key: key);
+  const NewPage({
+    Key? key,
+    this.newRestrict = "public",
+    this.bookRestrict = "public",
+    this.painterRestrict = "public",
+  }) : super(key: key);
 
   @override
   _NewPageState createState() => _NewPageState();
@@ -45,6 +47,14 @@ class NewPage extends StatefulWidget {
 class _NewPageState extends State<NewPage>
     with AutomaticKeepAliveClientMixin, TickerProviderStateMixin {
   late TabController _tabController;
+  static const _bookmarkTab = 0;
+  static const _activityTab = 1;
+  static const _watchlistTab = 2;
+  static const _followingTab = 3;
+  static const _scrollTargets = ['302', '301', '303', '304'];
+  final _filterIndices = [0, 0, 0, 0];
+  static const _activityRestrictions = ['all', 'public', 'private'];
+  static const _visibilityRestrictions = ['public', 'private'];
   late StreamSubscription<String> subscription;
 
   @override
@@ -52,10 +62,7 @@ class _NewPageState extends State<NewPage>
     _tabController = TabController(length: 4, vsync: this);
     super.initState();
     subscription = topStore.topStream.listen((event) {
-      if (event == "300") {
-        String name = (300 + _tabController.index + 1).toString();
-        topStore.setTop(name);
-      }
+      if (event == '300') topStore.setTop(_scrollTargets[_tabController.index]);
     });
   }
 
@@ -69,105 +76,156 @@ class _NewPageState extends State<NewPage>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    return Observer(builder: (context) {
-      if (accountStore.now != null)
-        return Column(
-          mainAxisSize: MainAxisSize.max,
-          children: <Widget>[
-            AppBar(
-              automaticallyImplyLeading: false,
-              title: TabBar(
-                  indicatorSize: TabBarIndicatorSize.label,
-                  tabAlignment: TabAlignment.start,
-                  controller: _tabController,
-                  isScrollable: true,
-                  onTap: (i) {
-                    HapticUtil.selectionClick();
-                    if (_tabController.index == i)
-                      topStore.setTop((301 + i).toString());
-                  },
-                  tabs: [
-                    Tab(
-                      text: I18n.of(context).news,
-                    ),
-                    Tab(
-                      text: I18n.of(context).bookmark,
-                    ),
-                    Tab(
-                      text: I18n.of(context).watchlist,
-                    ),
-                    Tab(
-                      text: I18n.of(context).news_follow_title,
-                    ),
-                  ]),
-              actions: <Widget>[
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                  child: Container(
-                    height: 26,
-                    width: 26,
-                    decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 1.0)),
-                    child: PainterAvatar(
-                      url: accountStore.now!.userImage,
-                      id: int.parse(accountStore.now!.userId),
-                    ),
+    return Observer(
+      builder: (context) {
+        if (accountStore.now != null) {
+          final tablet = usesIPadLayout(context);
+          final id = int.parse(accountStore.now!.userId);
+          final top = kToolbarHeight + MediaQuery.paddingOf(context).top;
+          final labels = [
+            I18n.of(context).bookmark,
+            I18n.of(context).news,
+            I18n.of(context).watchlist,
+            I18n.of(context).news_follow_title,
+          ];
+          void select(int i) {
+            HapticUtil.selectionClick();
+            if (_tabController.index == i) topStore.setTop(_scrollTargets[i]);
+            _tabController.animateTo(i);
+          }
+
+          final topInset = tablet ? top : 0.0;
+          final bookRestriction =
+              _visibilityRestrictions[_filterIndices[_bookmarkTab]];
+          final activityRestriction =
+              _activityRestrictions[_filterIndices[_activityTab]];
+          final followRestriction =
+              _visibilityRestrictions[_filterIndices[_followingTab]];
+          final pages = TabBarView(
+            controller: _tabController,
+            children: [
+              BookmarkPage(
+                key: ValueKey((id, bookRestriction)),
+                id: id,
+                restrict: bookRestriction,
+                topInset: topInset,
+                showFilter: !tablet,
+              ),
+              NewIllustPage(
+                key: ValueKey((id, activityRestriction)),
+                restrict: activityRestriction,
+                topInset: topInset,
+                showFilter: !tablet,
+              ),
+              WatchlistPage(topInset: topInset),
+              FollowList(
+                key: ValueKey((id, followRestriction)),
+                id: id,
+                restrict: followRestriction,
+                topInset: topInset,
+                showFilter: !tablet,
+              ),
+            ],
+          );
+          if (tablet) {
+            final visibilityLabels = [
+              I18n.of(context).public,
+              I18n.of(context).private,
+            ];
+            return Stack(
+              fit: StackFit.expand,
+              children: [
+                pages,
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: top,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      const ProgressiveToolbarBlur(),
+                      SafeArea(
+                        bottom: false,
+                        child: LayoutBuilder(
+                          builder: (context, bounds) => AnimatedBuilder(
+                            animation: _tabController,
+                            builder: (context, _) {
+                              final tab = _tabController.index;
+                              return Row(
+                                textDirection: TextDirection.ltr,
+                                children: [
+                                  const Spacer(),
+                                  GlassSegmentPicker(
+                                    compact: true,
+                                    maxWidth: bounds.maxWidth * .54,
+                                    labels: labels,
+                                    index: tab,
+                                    onSelect: select,
+                                  ),
+                                  Expanded(
+                                    child: tab == _watchlistTab
+                                        ? const SizedBox.shrink()
+                                        : Align(
+                                            alignment: Alignment.centerLeft,
+                                            child: Padding(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 6,
+                                                  ),
+                                              child: SortGroup(
+                                                key: ValueKey(tab),
+                                                compact: true,
+                                                initIndex: _filterIndices[tab],
+                                                children: tab == _activityTab
+                                                    ? [
+                                                        I18n.of(context).all,
+                                                        ...visibilityLabels,
+                                                      ]
+                                                    : visibilityLabels,
+                                                onChange: (int index) =>
+                                                    setState(
+                                                      () =>
+                                                          _filterIndices[tab] =
+                                                              index,
+                                                    ),
+                                              ),
+                                            ),
+                                          ),
+                                  ),
+                                ],
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
-            ),
-            Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: <Widget>[
-                  NewIllustPage(),
-                  BookmarkPage(
-                    isNested: false,
-                    id: int.parse(accountStore.now!.userId),
-                  ),
-                  WatchlistPage(),
-                  FollowList(
-                    id: int.parse(accountStore.now!.userId),
-                  ),
-                ],
+            );
+          }
+
+          return Column(
+            children: [
+              AppBar(
+                automaticallyImplyLeading: false,
+                title: TabBar(
+                  controller: _tabController,
+                  isScrollable: true,
+                  tabAlignment: TabAlignment.start,
+                  indicatorSize: TabBarIndicatorSize.label,
+                  onTap: select,
+                  tabs: [for (final label in labels) Tab(text: label)],
+                ),
               ),
-            )
-          ],
-        );
-      return DefaultTabController(
-          length: 3,
-          child: Scaffold(
-            appBar: AppBar(
-              title: TabBar(
-                onTap: (i) {
-                  HapticUtil.selectionClick();
-                },
-                tabs: [
-                  Tab(
-                    child: Text(
-                        '${I18n.of(context).follow}${I18n.of(context).news}'),
-                  ),
-                  Tab(
-                    child: Text(
-                        '${I18n.of(context).personal}${I18n.of(context).bookmark}'),
-                  ),
-                  Tab(
-                    child: Text(
-                        '${I18n.of(context).follow}${I18n.of(context).painter}'),
-                  ),
-                ],
-              ),
-            ),
-            body: TabBarView(
-              children: <Widget>[
-                LoginInFirst(),
-                LoginInFirst(),
-                LoginInFirst(),
-              ],
-            ),
-          ));
-    });
+              Expanded(child: pages),
+            ],
+          );
+        }
+        return const LoginInFirst();
+      },
+    );
   }
 
   @override

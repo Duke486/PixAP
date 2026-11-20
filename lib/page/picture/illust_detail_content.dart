@@ -1,3 +1,4 @@
+import 'package:pixez/component/ipad_surface.dart';
 import 'dart:io';
 
 import 'package:material_ui/material_ui.dart';
@@ -78,7 +79,28 @@ class _IllustDetailContentState extends State<IllustDetailContent> {
 
   @override
   Widget build(BuildContext context) {
-    return Observer(builder: (_) {
+    return LayoutBuilder(builder: (context, constraints) => Observer(builder: (_) {
+      if (usesIPadLayout(context) && constraints.maxWidth >= 800) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            IPadGalleryCard(child: Padding(padding: const EdgeInsets.all(12), child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                _buildInfoArea(context, _illusts),
+                _buildNameAvatar(context, _illusts),
+              ])),
+              const SizedBox(width: 20),
+              Expanded(child: Column(children: [
+                _buildTagArea(context, _illusts),
+                _buildCaptionArea(_illusts),
+                _buildCommentTextArea(context, _illusts),
+              ])),
+            ]))),
+            const SizedBox(height: 20),
+            Text(I18n.of(context).about_picture, style: Theme.of(context).textTheme.titleMedium),
+          ]),
+        );
+      }
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
@@ -95,7 +117,7 @@ class _IllustDetailContentState extends State<IllustDetailContent> {
           )
         ],
       );
-    });
+    }));
   }
 
   Widget _buildInfoArea(BuildContext context, Illusts data) {
@@ -377,6 +399,12 @@ class _IllustDetailContentState extends State<IllustDetailContent> {
   }
 
   Widget _buildCommentTextArea(BuildContext context, Illusts data) {
+    if (usesIPadLayout(context)) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 5),
+        child: Center(child: ArtworkCommentButton(id: data.id, count: data.commentCountText)),
+      );
+    }
     return Center(
       child: Padding(
         padding: EdgeInsets.only(left: 16.0, right: 16.0),
@@ -604,6 +632,7 @@ class _IllustDetailContentState extends State<IllustDetailContent> {
               ),
             ),
             UserFollowButton(
+              glass: true,
               id: illust.user.id,
               followed: userStore?.isFollow ?? illust.user.isFollowed ?? false,
               onPressed: () async {

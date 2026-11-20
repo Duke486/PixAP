@@ -1,3 +1,4 @@
+import 'package:pixez/component/ipad_surface.dart';
 /*
  * Copyright (C) 2020. by perol_notsf, All rights reserved
  *
@@ -205,7 +206,7 @@ class _ThemePageState extends State<ThemePage> with TickerProviderStateMixin {
       return Scaffold(
         appBar: AppBar(
             title: Text(I18n.of(context).theme),
-            bottom: TabBar(
+            bottom: PreferredSize(preferredSize: const Size.fromHeight(48), child: IPadPageTabs(tabs: TabBar(
                 controller: TabController(
                   length: 3,
                   initialIndex: ThemeMode.values.indexOf(userSetting.themeMode),
@@ -223,7 +224,7 @@ class _ThemePageState extends State<ThemePage> with TickerProviderStateMixin {
                     text: I18n.of(context).light,
                   ),
                   Tab(text: I18n.of(context).dark)
-                ])),
+                ])))),
         body: Observer(builder: (_) {
           return CustomScrollView(
             slivers: [

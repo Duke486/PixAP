@@ -1,3 +1,4 @@
+import 'package:pixez/component/ipad_surface.dart';
 /*
  * Copyright (C) 2020. by perol_notsf, All rights reserved
  *
@@ -39,7 +40,12 @@ class SpotlightCard extends StatelessWidget {
             return SoupPage(url: spotlight.articleUrl, spotlight: spotlight);
           }));
         },
-        child: Container(
+        child: usesIPadLayout(context) ? IPadGalleryCard(scrolling: true, child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            AspectRatio(aspectRatio: 1.91, child: PixivImage(spotlight.thumbnail, fit: BoxFit.cover)),
+            Padding(padding: const EdgeInsets.all(12), child: SizedBox(height: MediaQuery.textScalerOf(context).scale(16) * 2.8, child: Text(spotlight.title, maxLines: 2, overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.titleSmall))),
+          ])) : Container(
           height: 230,
           child: Stack(
             children: <Widget>[

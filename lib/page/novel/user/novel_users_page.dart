@@ -362,7 +362,7 @@ class _NovelUsersPageState extends State<NovelUsersPage>
                     title: Text('${I18n.of(context).block_user}?'),
                     actions: <Widget>[
                       TextButton(
-                        child: Text("OK"),
+                        child: Text(I18n.of(context).ok),
                         onPressed: () {
                           Navigator.of(context).pop("OK");
                         },

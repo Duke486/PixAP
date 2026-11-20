@@ -1,0 +1,59 @@
+{
+  "fill": {
+    "solid": "extended-srgb:0.0,0.0,0.0,0.0"
+  },
+  "groups": [
+    {
+      "name": "Ribbon",
+      "layers": [
+        {
+          "name": "Ribbon",
+          "image-name": "Ribbon.svg",
+          "glass": true
+        }
+      ],
+      "specular": "inside",
+      "translucency": {
+        "enabled": true,
+        "value": 0.47
+      },
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.15
+      },
+      "blur-material": 0.22
+    },
+    {
+      "name": "Turn",
+      "layers": [
+        {
+          "name": "Turn",
+          "image-name": "Turn.svg",
+          "glass": true
+        }
+      ],
+      "specular": "inside",
+      "translucency": {
+        "enabled": true,
+        "value": 0.72
+      },
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.11
+      },
+      "blur-material": 0.12,
+      "refractivity": {
+        "enabled": true,
+        "strength": 0.55,
+        "depth": 0.43
+      }
+    }
+  ],
+  "supported-platforms": {
+    "squares": "shared"
+  },
+  "features": [
+    "refractivity",
+    "specular-location"
+  ]
+}

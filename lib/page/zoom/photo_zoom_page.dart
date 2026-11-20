@@ -1,4 +1,6 @@
+import 'package:pixez/component/ipad_surface.dart';
 import 'dart:io';
+import 'package:pixez/page/picture/artwork_edge_back.dart';
 
 import 'package:bot_toast/bot_toast.dart';
 import 'package:flutter/gestures.dart';
@@ -35,6 +37,11 @@ class PhotoZoomPage extends StatefulWidget {
 class _PhotoZoomPageState extends State<PhotoZoomPage> {
   late Illusts _illusts;
   int _index = 0;
+  late final _pages = PageController(initialPage: widget.index);
+  bool _toolsVisible = true;
+  void _toggleTools(BuildContext context, TapUpDetails details, PhotoViewControllerValue value) {
+    if (usesIPadLayout(context)) setState(() => _toolsVisible = !_toolsVisible);
+  }
 
   @override
   void initState() {
@@ -60,6 +67,7 @@ class _PhotoZoomPageState extends State<PhotoZoomPage> {
         SystemUiMode.manual,
         overlays: SystemUiOverlay.values,
       );
+    _pages.dispose();
     super.dispose();
   }
 
@@ -75,7 +83,7 @@ class _PhotoZoomPageState extends State<PhotoZoomPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Builder(
+    return ArtworkEdgeBack(child: Builder(
       builder: (context) {
         if (_illusts.pageCount == 1) {
           final url = _loadSource
@@ -88,6 +96,7 @@ class _PhotoZoomPageState extends State<PhotoZoomPage> {
             bottomNavigationBar: _buildBottom(context),
             body: Container(
               child: PhotoView(
+                onTapUp: _toggleTools,
                 filterQuality: FilterQuality.high,
                 initialScale: PhotoViewComputedScale.contained,
                 heroAttributes: PhotoViewHeroAttributes(tag: url),
@@ -115,12 +124,13 @@ class _PhotoZoomPageState extends State<PhotoZoomPage> {
               ),
               child: PhotoViewGallery.builder(
                 scrollPhysics: const BouncingScrollPhysics(),
-                pageController: PageController(initialPage: _index),
+                pageController: _pages,
                 builder: (BuildContext context, int index) {
                   final url = _loadSource
                       ? _illusts.metaPages[index].imageUrls!.original
                       : _illusts.metaPages[index].imageUrls!.large;
                   return PhotoViewGalleryPageOptions(
+                    onTapUp: _toggleTools,
                     imageProvider: PixivProvider.url(url),
                     initialScale: PhotoViewComputedScale.contained,
                     heroAttributes: PhotoViewHeroAttributes(tag: url),
@@ -150,7 +160,7 @@ class _PhotoZoomPageState extends State<PhotoZoomPage> {
           );
         }
       },
-    );
+    ));
   }
 
   String nowUrl = "";
@@ -160,12 +170,22 @@ class _PhotoZoomPageState extends State<PhotoZoomPage> {
   bool _loadSource = false;
   bool _fullScreen = false;
 
-  Widget _buildBottom(BuildContext context) {
+  Widget _buildBottom(BuildContext context) => IgnorePointer(
+    ignoring: !_toolsVisible, child: AnimatedOpacity(opacity: _toolsVisible ? 1 : 0,
+      duration: const Duration(milliseconds: 190), child: _toolbar(context)));
+
+  Widget _group(BuildContext context, List<Widget> children) {
+    final row = Row(mainAxisSize: MainAxisSize.min, children: children);
+    if (!usesIPadLayout(context)) return row;
+    return DecoratedBox(decoration: const ShapeDecoration(color: Colors.black54, shape: StadiumBorder()),
+      child: IPadSurface(darkGlass: true, child: Padding(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2), child: row)));
+  }
+
+  Widget _toolbar(BuildContext context) {
     if (_fullScreen) {
       return BottomAppBar(
         color: Colors.transparent,
-        child: Row(
-          children: [
+        child: Align(alignment: Alignment.centerLeft, child: _group(context, [
             IconButton(
               onPressed: () {
                 setState(() {
@@ -178,11 +198,10 @@ class _PhotoZoomPageState extends State<PhotoZoomPage> {
               },
               icon: Icon(
                 Icons.fullscreen_exit,
-                color: Colors.white.withValues(alpha: 0.5),
+                color: Colors.white,
               ),
             ),
-          ],
-        ),
+          ])),
       );
     }
     return BottomAppBar(
@@ -193,8 +212,7 @@ class _PhotoZoomPageState extends State<PhotoZoomPage> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Row(
-              children: [
+            _group(context, [
                 IconButton(
                   iconSize: 16,
                   icon: Icon(Icons.photo_library_outlined, color: Colors.white),
@@ -206,11 +224,8 @@ class _PhotoZoomPageState extends State<PhotoZoomPage> {
                     context,
                   ).textTheme.bodyLarge!.copyWith(color: Colors.white),
                 ),
-              ],
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
+              ]),
+            _group(context, [
                 IconButton(
                   icon: Icon(Icons.arrow_back, color: Colors.white),
                   onPressed: () async {
@@ -312,8 +327,7 @@ class _PhotoZoomPageState extends State<PhotoZoomPage> {
                     });
                   },
                 ),
-              ],
-            ),
+              ]),
           ],
         ),
       ),

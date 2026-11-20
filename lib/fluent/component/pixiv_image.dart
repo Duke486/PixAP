@@ -20,7 +20,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
 import 'package:dio_compatibility_layer/dio_compatibility_layer.dart';
 import 'package:fluent_ui/fluent_ui.dart';
-import 'package:flutter_cache_manager_dio/flutter_cache_manager_dio.dart';
+import 'package:pixez/er/image_cache_manager.dart';
 import 'package:pixez/er/hoster.dart';
 import 'package:pixez/er/pixiv_image_source.dart';
 import 'package:pixez/main.dart';

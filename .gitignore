@@ -116,3 +116,5 @@ msic
 *.pfx
 
 /lib/src/generated/
+# Local iOS toolchain paths
+/ios/Flutter/LocalToolchain.xcconfig

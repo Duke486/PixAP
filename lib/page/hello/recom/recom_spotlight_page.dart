@@ -1,3 +1,4 @@
+import 'package:pixez/component/cover_blur.dart';
 /*
  * Copyright (C) 2020. by perol_notsf, All rights reserved
  *
@@ -14,6 +15,7 @@
  *
  */
 
+import 'package:pixez/component/ipad_surface.dart';
 import 'dart:async';
 import 'dart:io';
 import 'dart:math';
@@ -45,6 +47,15 @@ class RecomSpolightPage extends StatefulWidget {
 
 class _RecomSpolightPageState extends State<RecomSpolightPage>
     with AutomaticKeepAliveClientMixin {
+  static const double coverWidth = 278;
+  static const double coverHeight = 173;
+  static const double blurRadius = 16;
+  static const double blurExtent = .42;
+  static const double veil = .36;
+  static const double midpoint = .44;
+  static const double plateau = .09;
+  static const double opacity = 1;
+
   late SpotlightStore spotlightStore;
   late LightingStore _lightingStore;
   late RecomUserStore _recomUserStore;
@@ -73,8 +84,8 @@ class _RecomSpolightPageState extends State<RecomSpolightPage>
     )..easyRefreshController = _easyRefreshController;
     super.initState();
     subscription = topStore.topStream.listen((event) {
-      if (event == "100") {
-        _scrollController.position.jumpTo(0);
+      if (event == "100" && _scrollController.hasClients) {
+        _scrollController.jumpTo(0);
       }
     });
   }
@@ -96,7 +107,7 @@ class _RecomSpolightPageState extends State<RecomSpolightPage>
   Widget buildEasyRefresh(BuildContext context) {
     return Stack(
       children: [
-        NestedScrollView(
+        if (!usesIPadLayout(context)) NestedScrollView(
           headerSliverBuilder: (context, innerBoxIsScrolled) => [
             SliverAppBar(
               elevation: 0.0,
@@ -111,7 +122,9 @@ class _RecomSpolightPageState extends State<RecomSpolightPage>
         EasyRefresh.builder(
           controller: _easyRefreshController,
           callLoadOverOffset: Platform.isIOS ? 2 : 5,
-          header: PixezDefault.header(context),
+          header: usesIPadLayout(context)
+              ? PixezDefault.header(context, position: IndicatorPosition.locator, safeArea: false)
+              : PixezDefault.header(context),
           footer: PixezDefault.footer(context),
           onRefresh: () async {
             await fetchT();
@@ -148,6 +161,7 @@ class _RecomSpolightPageState extends State<RecomSpolightPage>
           SliverToBoxAdapter(
             child: Container(height: MediaQuery.of(context).padding.top),
           ),
+          if (usesIPadLayout(context)) const HeaderLocator.sliver(),
           SliverToBoxAdapter(
             child: _buildFirstRow(context),
           ),
@@ -157,7 +171,8 @@ class _RecomSpolightPageState extends State<RecomSpolightPage>
           SliverToBoxAdapter(
             child: _buildSecondRow(context, I18n.of(context).recommend_for_you),
           ),
-          _buildWaterfall(context, MediaQuery.of(context).orientation)
+          SliverPadding(padding: EdgeInsets.only(right: usesIPadLayout(context) ? 12 : 0),
+            sliver: _buildWaterfall(context, MediaQuery.of(context).orientation))
         ],
       ),
     );
@@ -242,19 +257,23 @@ class _RecomSpolightPageState extends State<RecomSpolightPage>
   Widget _buidTagSpotlightRow(BuildContext context) {
     var expectCardWidget = MediaQuery.of(context).size.width * 0.7;
     expectCardWidget = expectCardWidget > 244 ? 244 : expectCardWidget;
-    final expectCardHeight = expectCardWidget * 0.525;
+    final cardWidth = usesIPadLayout(context) ? coverWidth : expectCardWidget;
+    final expectCardHeight = usesIPadLayout(context) ? coverHeight : cardWidth * .525;
     return Container(
-      height: expectCardHeight,
-      padding: EdgeInsets.only(left: 0.0),
+      height: expectCardHeight + (usesIPadLayout(context) ? 12 : 0),
+      padding: EdgeInsets.zero,
       child: spotlightStore.articles.isNotEmpty
           ? ListView.builder(
+              padding: usesIPadLayout(context) ? const EdgeInsets.only(top: 3, bottom: 9) : null,
+              primary: false,
+              physics: usesIPadLayout(context) ? const ClampingScrollPhysics() : null,
               itemBuilder: (context, index) {
                 final spotlight = spotlightStore.articles[index];
                 return Card(
                   clipBehavior: Clip.antiAlias,
                   margin: EdgeInsets.symmetric(horizontal: 8.0),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.all(Radius.circular(8.0))),
+                      borderRadius: BorderRadius.all(Radius.circular(usesIPadLayout(context) ? 16 : 8))),
                   child: Hero(
                     tag: "spotlight_image_${spotlight.hashCode}",
                     child: Material(
@@ -271,14 +290,20 @@ class _RecomSpolightPageState extends State<RecomSpolightPage>
                           }));
                         },
                         child: Container(
-                            width: expectCardWidget,
+                            width: cardWidth,
                             height: expectCardHeight,
                             decoration: BoxDecoration(
                                 image: DecorationImage(
                                     fit: BoxFit.cover,
                                     image: PixivProvider.url(
                                         spotlight.thumbnail))),
-                            child: Container(
+                            child: usesIPadLayout(context) ? Stack(fit: StackFit.expand, children: [
+                              CoverBlur(image: PixivProvider.url(spotlight.thumbnail), sigma: blurRadius,
+                                extent: blurExtent, midpoint: midpoint, plateau: plateau, opacity: opacity, tint: Colors.black.withValues(alpha: veil)),
+                              Align(alignment: Alignment.bottomLeft, child: Padding(padding: const EdgeInsets.fromLTRB(12,0,12,8),
+                                child: Text(spotlight.title, maxLines: 2, overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white)))),
+                            ]) : Container(
                                 child: Align(
                               alignment: Alignment.bottomCenter,
                               child: Container(
@@ -287,8 +312,8 @@ class _RecomSpolightPageState extends State<RecomSpolightPage>
                                   begin: Alignment.topCenter,
                                   end: Alignment.bottomCenter,
                                   colors: [
-                                    Colors.black.withValues(alpha: 0.0),
-                                    Colors.black.withValues(alpha: 0.5),
+                                    Colors.black.withValues(alpha: .38),
+                                    Colors.black.withValues(alpha: .82),
                                   ],
                                 )),
                                 child: Padding(
@@ -304,7 +329,7 @@ class _RecomSpolightPageState extends State<RecomSpolightPage>
                                           style: TextStyle(
                                             color: Colors.white,
                                             fontSize: 14,
-                                            fontWeight: FontWeight.normal,
+                                            fontWeight: FontWeight.w600,
                                             // shadows: [
                                             //   Shadow(
                                             //       color: Colors.black,
@@ -349,9 +374,12 @@ class _RecomSpolightPageState extends State<RecomSpolightPage>
               padding: EdgeInsets.only(left: 20.0, bottom: 10.0),
             ),
           ),
+          const Spacer(),
           Padding(
-            child: TextButton(
-              child: Text(
+            child: TextButton.icon(
+              iconAlignment: IconAlignment.end,
+              icon: const Icon(Icons.chevron_right, size: 17),
+              label: Text(
                 I18n.of(context).more,
                 style: Theme.of(context).textTheme.bodySmall,
               ),

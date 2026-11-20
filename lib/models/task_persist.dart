@@ -1,3 +1,4 @@
+import 'package:pixez/er/database_directory.dart';
 /*
  * Copyright (C) 2020. by perol_notsf, All rights reserved
  *
@@ -126,7 +127,7 @@ class TaskPersistProvider {
   late Database db;
 
   Future open() async {
-    String databasesPath = (await getDatabasesPath());
+    String databasesPath = (await demoDatabaseDirectory());
     String path =
         join(databasesPath, 'task1.db'); //某个版本出的bug，升级table无法定位问题，只能改了
     db = await openDatabase(path, version: 2,

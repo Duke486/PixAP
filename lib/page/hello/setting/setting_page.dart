@@ -14,7 +14,9 @@
  *
  */
 
+import 'package:pixez/component/ipad_surface.dart';
 import 'dart:io';
+import 'package:flutter/services.dart';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
@@ -48,10 +50,10 @@ class SettingPage extends StatefulWidget {
   const SettingPage({Key? key}) : super(key: key);
 
   @override
-  _SettingPageState createState() => _SettingPageState();
+  SettingPageState createState() => SettingPageState();
 }
 
-class _SettingPageState extends State<SettingPage> {
+class SettingPageState extends State<SettingPage> {
   @override
   void initState() {
     super.initState();
@@ -72,8 +74,58 @@ class _SettingPageState extends State<SettingPage> {
     if (mounted) setState(() {});
   }
 
+  final _detail = GlobalKey<NavigatorState>();
+
+  bool _authenticatingHistory = false;
+
+  void showPreferences() {
+    _detail.currentState?.popUntil((route) => route.isFirst);
+  }
+
+  Future<void> _openHistory(BuildContext context) async {
+    if (_authenticatingHistory) return;
+    if (Platform.isIOS) {
+      _authenticatingHistory = true;
+      bool authenticated = false;
+      try {
+        authenticated = await const MethodChannel('pixez/historyPrivacy')
+            .invokeMethod<bool>('authenticate', I18n.of(context).history_record) ?? false;
+      } on PlatformException {
+        // Fail closed if Face ID is unavailable or the system rejects the prompt.
+      } on MissingPluginException {
+        // The platform must provide authentication before the history opens.
+      } finally {
+        _authenticatingHistory = false;
+      }
+      if (!context.mounted) return;
+      if (!authenticated) return;
+    }
+    if (!context.mounted || ModalRoute.of(context)?.isCurrent != true) return;
+    Navigator.of(_destination(context)).push(MaterialPageRoute(
+      builder: (_) => Constants.type == 0 ? const HistoryPage() : NovelHistory(),
+    ));
+  }
+
+  BuildContext _destination(BuildContext fallback) => _detail.currentState?.overlay?.context ?? fallback;
+
   @override
   Widget build(BuildContext context) {
+    return LayoutBuilder(builder: (context, box) {
+      if (!usesIPadLayout(context) || box.maxWidth < 760) return _menu(context);
+      return Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        SizedBox(width: (box.maxWidth * .30).clamp(250.0, 350.0).toDouble(), child: _menu(context)),
+        const VerticalDivider(width: 1),
+        Expanded(child: Navigator(
+          key: _detail,
+          onGenerateInitialRoutes: (_, _) => [
+            MaterialPageRoute<void>(builder: (_) => SettingQualityPage()),
+          ],
+        )),
+      ]);
+    });
+  }
+
+  Widget _menu(BuildContext context) {
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
@@ -82,23 +134,6 @@ class _SettingPageState extends State<SettingPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
-                AppBar(
-                  elevation: 0.0,
-                  automaticallyImplyLeading: false,
-                  forceMaterialTransparency: true,
-                  backgroundColor: Colors.transparent,
-                  actions: [
-                    IconButton(
-                      icon: Icon(
-                        Icons.palette,
-                      ),
-                      onPressed: () {
-                        Navigator.of(context).push(MaterialPageRoute(
-                            builder: (context) => ThemePage()));
-                      },
-                    ),
-                  ],
-                ),
                 Observer(builder: (context) {
                   if (accountStore.now != null)
                     return SingleChildScrollView(
@@ -120,7 +155,7 @@ class _SettingPageState extends State<SettingPage> {
                                     url: accountStore.now!.userImage,
                                     id: int.parse(accountStore.now!.userId),
                                   ),
-                                  Padding(
+                                  Expanded(child: Padding(
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 8.0),
                                     child: Column(
@@ -144,7 +179,7 @@ class _SettingPageState extends State<SettingPage> {
                                             crossAxisAlignment:
                                                 CrossAxisAlignment.center,
                                             children: [
-                                              Text(
+                                              Flexible(child: Text(
                                                 hideEmail
                                                     ? accountStore.now!
                                                         .hiddenEmail()
@@ -152,8 +187,8 @@ class _SettingPageState extends State<SettingPage> {
                                                         .now!.mailAddress,
                                                 style: Theme.of(context)
                                                     .textTheme
-                                                    .bodySmall,
-                                              ),
+                                                    .bodySmall, overflow: TextOverflow.ellipsis, maxLines: 1,
+                                              )),
                                               SizedBox(
                                                 width: 6,
                                               ),
@@ -181,7 +216,7 @@ class _SettingPageState extends State<SettingPage> {
                                           )
                                       ],
                                     ),
-                                  )
+                                  ))
                                 ],
                               ),
                             ),
@@ -190,7 +225,7 @@ class _SettingPageState extends State<SettingPage> {
                             leading: Icon(Icons.account_box),
                             title: Text(I18n.of(context).account_message),
                             onTap: () {
-                              Navigator.of(context).push(MaterialPageRoute(
+                              Navigator.of(_destination(context)).push(MaterialPageRoute(
                                   builder: (BuildContext context) =>
                                       AccountEditPage()));
                             },
@@ -201,60 +236,63 @@ class _SettingPageState extends State<SettingPage> {
                   return Container();
                 }),
                 Divider(),
-                Column(
+                _sections(context, [
+Column(
                   children: <Widget>[
                     ListTile(
                       leading: Icon(Icons.history),
                       title: Text(I18n.of(context).history_record),
-                      onTap: () {
-                        Navigator.of(context).push(
-                            MaterialPageRoute(builder: (BuildContext context) {
-                          return Constants.type == 0
-                              ? HistoryPage()
-                              : NovelHistory();
-                        }));
-                      },
+                      onTap: () => _openHistory(context),
                     ),
                     ListTile(
                       leading: Icon(Icons.settings),
                       title: Text(I18n.of(context).quality_setting),
                       onTap: () {
-                        Navigator.of(context).push(
-                            MaterialPageRoute(builder: (BuildContext context) {
-                          return SettingQualityPage();
-                        }));
+                        if (_detail.currentState != null) {
+                          showPreferences();
+                        } else {
+                          Navigator.of(context).push(MaterialPageRoute(
+                            builder: (_) => SettingQualityPage(),
+                          ));
+                        }
                       },
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.palette_outlined),
+                      title: Text(I18n.of(context).theme),
+                      onTap: () => Navigator.of(_destination(context)).push(
+                        MaterialPageRoute(builder: (_) => ThemePage()),
+                      ),
                     ),
                     ListTile(
                       leading: Icon(Icons.bookmark),
                       title: Text(I18n.of(context).favorited_tag),
                       onTap: () =>
-                          Leader.pushWithScaffold(context, BookTagPage()),
+                          Leader.pushWithScaffold(_destination(context), BookTagPage()),
                     ),
                     ListTile(
                       leading: Icon(Icons.block),
                       title: Text(I18n.of(context).shielding_settings),
-                      onTap: () => Leader.push(context, ShieldPage()),
+                      onTap: () => Leader.push(_destination(context), ShieldPage()),
                     ),
                     ListTile(
                       leading: Icon(Icons.save_alt),
                       title: Text(I18n.of(context).task_progress),
-                      onTap: () => Leader.push(context, JobPage()),
+                      onTap: () => Leader.push(_destination(context), JobPage()),
                     ),
                     ListTile(
-                      onTap: () => Leader.push(context, DataExportPage()),
+                      onTap: () => Leader.push(_destination(context), DataExportPage()),
                       title: Text(I18n.of(context).app_data),
                       leading: Icon(Icons.folder_open_rounded),
                     ),
                   ],
                 ),
-                Divider(),
                 Column(
                   children: <Widget>[
                     ListTile(
                       leading: Icon(Icons.library_books),
                       title: Text(I18n.of(context).manga),
-                      onTap: () => Leader.push(context, RecomMangaPage()),
+                      onTap: () => Leader.push(_destination(context), RecomMangaPage()),
                     ),
                     ListTile(
                       leading: Icon(Icons.book),
@@ -267,7 +305,7 @@ class _SettingPageState extends State<SettingPage> {
                       leading: Icon(Icons.message),
                       title: Text(I18n.of(context).about),
                       onTap: () => Leader.push(
-                        context,
+                        _destination(context),
                         AboutPage(newVersion: _effectiveHasNewVersion),
                       ),
                       trailing: Observer(
@@ -284,7 +322,7 @@ class _SettingPageState extends State<SettingPage> {
                         leading: Icon(Icons.article),
                         title: Text(I18n.of(context).bulletin_board),
                         onTap: () => Leader.push(
-                            context,
+                            _destination(context),
                             BoardPage(
                               boardList: _boardList,
                             )),
@@ -300,17 +338,30 @@ class _SettingPageState extends State<SettingPage> {
                         return ListTile(
                           leading: Icon(Icons.arrow_back),
                           title: Text(I18n.of(context).login),
-                          onTap: () => Leader.push(context, LoginPage()),
+                          onTap: () => Leader.push(_destination(context), LoginPage()),
                         );
                     })
                   ],
                 )
+                ])
               ],
             ),
           ),
         ),
       ),
     );
+  }
+
+  Widget _sections(BuildContext context, List<Widget> groups) {
+    if (!usesIPadLayout(context)) return Column(children: [groups.first, Divider(), groups.last]);
+    return LayoutBuilder(builder: (context, constraints) {
+      if (constraints.maxWidth < 760) return Column(children: [groups.first, const Divider(height: 24), groups.last]);
+      return Align(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 1040),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Expanded(child: groups.first), const SizedBox(width: 16), Expanded(child: groups.last),
+        ]),
+      ));
+    });
   }
 
   Future _showLogoutDialog(BuildContext context) async {

@@ -1,3 +1,4 @@
+import 'package:pixez/component/ipad_surface.dart';
 /*
  * Copyright (C) 2020. by perol_notsf, All rights reserved
  *
@@ -104,7 +105,7 @@ class _BookTagPageState extends State<BookTagPage>
       return Scaffold(
         appBar: AppBar(
           elevation: 0.0,
-          title: TabBar(
+          title: IPadPageTabs(tabs: TabBar(
             onTap: (i) {
               HapticUtil.selectionClick();
             },
@@ -117,7 +118,7 @@ class _BookTagPageState extends State<BookTagPage>
                   text: i,
                 )
             ],
-          ),
+          )),
           actions: [
             IconButton(
                 icon: Icon(

@@ -1,3 +1,5 @@
+import 'package:pixez/page/hello/setting/demo_mode.dart';
+import 'package:pixez/network/demo_catalog.dart';
 /*
  * Copyright (C) 2020. by perol_notsf, All rights reserved
  *
@@ -21,7 +23,6 @@ import 'package:dio/dio.dart';
 import 'package:dio_compatibility_layer/dio_compatibility_layer.dart';
 import 'package:mobx/mobx.dart';
 import 'package:html/parser.dart' show parse;
-import 'package:pixez/main.dart';
 import 'package:pixez/models/amwork.dart';
 import 'package:pixez/network/api_client.dart';
 import 'package:html/dom.dart';
@@ -32,32 +33,57 @@ part 'soup_store.g.dart';
 class SoupStore = _SoupStoreBase with _$SoupStore;
 
 abstract class _SoupStoreBase with Store {
-  final dio = Dio(BaseOptions(headers: {
-    HttpHeaders.acceptLanguageHeader:
-        userSetting.languageNum < 5 ? ApiClient.Accept_Language : "en-US",
-    'user-agent':
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.26 Safari/537.36 Edg/85.0.564.13',
-    HttpHeaders.refererHeader: 'https://www.pixivision.net/zh/',
-  }));
+  final dio = Dio(
+    BaseOptions(
+      headers: {
+        HttpHeaders.acceptLanguageHeader: ApiClient.Accept_Language,
+        'user-agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.26 Safari/537.36 Edg/85.0.564.13',
+        HttpHeaders.refererHeader: 'https://www.pixivision.net/zh/',
+      },
+    ),
+  );
 
   ObservableList<AmWork> amWorks = ObservableList();
 
   @observable
   String? description;
 
+  bool loadFailed = false;
+
   @action
   fetch(String url) async {
+    loadFailed = false;
+    if (DemoMode.active) {
+      final catalog = DemoCatalog.instance;
+      description = '沿着小路看风景，收集途中遇见的颜色。';
+      amWorks.clear();
+      amWorks.addAll(
+        catalog.ids
+            .skip(
+              (int.tryParse(Uri.parse(url).pathSegments.lastOrNull ?? '') ??
+                      0) %
+                  24,
+            )
+            .take(12)
+            .map(catalog.articleWork),
+      );
+      return;
+    }
     try {
       final compatibleClient = await r.RhttpCompatibleClient.create();
       dio.httpClientAdapter = ConversionLayerAdapter(compatibleClient);
-      if (userSetting.languageNum == 0 || userSetting.languageNum >= 5) {
-        _fetchEn(url);
+      if (ApiClient.Accept_Language == 'en-US') {
+        await _fetchEn(url);
       } else {
-        _fetchCNTW(url);
+        await _fetchCNTW(url);
       }
     } on DioException {
+      loadFailed = true;
       BotToast.showText(text: "404 NOT FOUND");
-    } catch (e) {}
+    } catch (_) {
+      loadFailed = true;
+    }
   }
 
   _fetchEn(url) async {
@@ -73,7 +99,7 @@ abstract class _SoupStoreBase with Store {
         .children;
 
     Element workInfo;
-    if (nodes.first.attributes['class']!.contains('_feature')) {
+    if ((nodes.first.attributes['class'] ?? '').contains('_feature')) {
       // feature article body
       nodes = nodes.first.children;
       description = '';
@@ -88,7 +114,7 @@ abstract class _SoupStoreBase with Store {
 
     for (var value in nodes) {
       try {
-        if (!value.attributes['class']!.contains('illust')) {
+        if (!(value.attributes['class'] ?? '').contains('illust')) {
           continue;
         }
         AmWork amWork = AmWork();
@@ -96,19 +122,22 @@ abstract class _SoupStoreBase with Store {
           var a = aa.attributes['href'];
           var segments = Uri.parse(a!).pathSegments;
           if (a.startsWith('https') &&
-              segments.length > 2 &&
+              segments.length >= 2 &&
               segments[segments.length - 2] == 'artworks') {
             amWork.arworkLink = a;
-            amWork.showImage =
-                value.getElementsByTagName('img')[1].attributes['src']!;
+            amWork.showImage = value
+                .getElementsByTagName('img')[1]
+                .attributes['src']!;
             amWork.title = value.getElementsByTagName('h3').first.text;
           } else if (a.startsWith('https') &&
-              segments.length > 2 &&
+              segments.length >= 2 &&
               segments[segments.length - 2] == 'users') {
             amWork.userLink = a;
             amWork.user = value.getElementsByTagName('p').first.text;
-            amWork.userImage =
-                value.getElementsByTagName('img').first.attributes['src']!;
+            amWork.userImage = value
+                .getElementsByTagName('img')
+                .first
+                .attributes['src']!;
           }
         }
         if (amWork.userLink == null || amWork.arworkLink == null) {
@@ -134,7 +163,7 @@ abstract class _SoupStoreBase with Store {
         .children;
 
     Element workInfo;
-    if (nodes.first.attributes['class']!.contains('_feature')) {
+    if ((nodes.first.attributes['class'] ?? '').contains('_feature')) {
       // feature article body
       nodes = nodes.first.children;
       description = '';
@@ -149,7 +178,7 @@ abstract class _SoupStoreBase with Store {
 
     for (var value in nodes) {
       try {
-        if (!value.attributes['class']!.contains('illust')) {
+        if (!(value.attributes['class'] ?? '').contains('illust')) {
           continue;
         }
         AmWork amWork = AmWork();
@@ -157,14 +186,17 @@ abstract class _SoupStoreBase with Store {
           var a = aa.attributes['href']!;
           if (a.contains('https://www.pixiv.net/artworks')) {
             amWork.arworkLink = a;
-            amWork.showImage =
-                value.getElementsByTagName('img')[1].attributes['src']!;
+            amWork.showImage = value
+                .getElementsByTagName('img')[1]
+                .attributes['src']!;
             amWork.title = value.getElementsByTagName('h3').first.text;
           } else if (a.contains('https://www.pixiv.net/users')) {
             amWork.userLink = a;
             amWork.user = value.getElementsByTagName('p').first.text;
-            amWork.userImage =
-                value.getElementsByTagName('img').first.attributes['src']!;
+            amWork.userImage = value
+                .getElementsByTagName('img')
+                .first
+                .attributes['src']!;
           }
         }
         if (amWork.userLink == null || amWork.arworkLink == null) {

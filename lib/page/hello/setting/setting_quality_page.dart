@@ -15,9 +15,12 @@
  */
 
 import 'dart:async';
+import 'demo_mode.dart';
 import 'dart:io';
 
 import 'package:bot_toast/bot_toast.dart';
+import 'package:pixez/component/ipad_surface.dart';
+import 'package:pixez/component/progressive_toolbar_blur.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:pixez/app_widget_plugin.dart';
@@ -27,14 +30,12 @@ import 'package:pixez/er/prefer.dart';
 import 'package:pixez/er/updater.dart';
 import 'package:pixez/i18n.dart';
 import 'package:pixez/main.dart';
-import 'package:pixez/page/about/languages.dart';
 import 'package:pixez/page/hello/setting/copy_text_page.dart';
 import 'package:pixez/page/hello/setting/setting_cross_adapter_page.dart';
 import 'package:pixez/page/network/network_page.dart';
 import 'package:pixez/page/platform/platform_page.dart';
 import 'package:pixez/store/welcome_page_type.dart';
 import 'package:pixez/utils/haptic_util.dart';
-import 'package:url_launcher/url_launcher_string.dart';
 
 class SettingQualityPage extends StatefulWidget {
   @override
@@ -98,8 +99,14 @@ class _SettingQualityPageState extends State<SettingQualityPage>
 
   @override
   Widget build(BuildContext context) {
+    final tablet = usesIPadLayout(context);
     return Scaffold(
-      appBar: AppBar(title: Text(I18n.of(context).quality_setting)),
+      extendBodyBehindAppBar: tablet,
+      appBar: AppBar(
+        forceMaterialTransparency: tablet,
+        flexibleSpace: tablet ? const ProgressiveToolbarBlur() : null,
+        title: Text(I18n.of(context).quality_setting),
+      ),
       body: Observer(
         builder: (context) {
           return Container(
@@ -456,6 +463,13 @@ class _SettingQualityPageState extends State<SettingQualityPage>
                   },
                 ),
                 Divider(),
+                if (Platform.isIOS)
+                  SwitchListTile(
+                    value: DemoMode.active,
+                    title: const Text('演示模式'),
+                    subtitle: const Text(demoHint),
+                    onChanged: DemoMode.restart,
+                  ),
               ],
             ),
           );
@@ -465,73 +479,14 @@ class _SettingQualityPageState extends State<SettingQualityPage>
   }
 
   Widget _buildLanguageSelect() {
-    return Container(
-      child: Column(
-        children: [
-          ListTile(
-            leading: Icon(Icons.translate),
-            title: Text("Language"),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SettingSelectMenu(
-                  index: userSetting.languageNum,
-                  items: [...Languages.map((e) => e.language).toList()],
-                  onChange: (index) async {
-                    await userSetting.setLanguageNum(index);
-                  },
-                ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  Languages.map(
-                    (e) => e.language,
-                  ).toList()[userSetting.languageNum],
-                ),
-                _buildLanguageTranlators(),
-              ],
-            ),
-          ),
-        ],
+    return ListTile(
+      leading: const Icon(Icons.translate),
+      title: Text(I18n.of(context).select_language),
+      trailing: SettingSelectMenu(
+        index: userSetting.languageNum,
+        items: userSetting.languageList,
+        onChange: (index) => userSetting.setLanguageNum(index),
       ),
-    );
-  }
-
-  Widget _buildLanguageTranlators() {
-    final langsponsors = Languages[userSetting.languageNum].sponsors;
-    return Row(
-      children: [
-        for (final langsponsor in langsponsors)
-          InkWell(
-            onTap: () {
-              try {
-                if (Platform.isAndroid && !Constants.isGooglePlay)
-                  launchUrlString(langsponsor.uri);
-              } catch (e) {}
-            },
-            child: Row(
-              children: <Widget>[
-                SizedBox(
-                  child: CircleAvatar(
-                    backgroundImage: NetworkImage(langsponsor.avatar),
-                  ),
-                  width: 30,
-                  height: 30,
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Text(langsponsor.name),
-                ),
-              ],
-            ),
-          ),
-      ],
     );
   }
 }
@@ -574,11 +529,12 @@ class _SettingSelectMenuState extends State<SettingSelectMenu> {
 
   @override
   Widget build(BuildContext context) {
+    final tablet = usesIPadLayout(context);
     return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(tablet ? 0 : 8)),
       clipBehavior: Clip.antiAlias,
       elevation: 0.0,
-      color: Theme.of(context).colorScheme.secondaryContainer,
+      color: tablet ? Colors.transparent : Theme.of(context).colorScheme.secondaryContainer,
       child: InkWell(
         onTap: () async {
           HapticUtil.selectionClick();

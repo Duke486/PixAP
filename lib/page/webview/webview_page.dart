@@ -20,6 +20,7 @@ class WebViewPage extends StatefulWidget {
 class _WebViewPageState extends State<WebViewPage> {
   late final WebViewController _webViewController;
   double progressValue = 0.0;
+  bool _handlingLogin = false;
 
   @override
   void initState() {
@@ -59,9 +60,18 @@ javascript:(function() {
           }
         },
         onWebResourceError: (WebResourceError error) {},
-        onNavigationRequest: (NavigationRequest request) {
+        onNavigationRequest: (NavigationRequest request) async {
           if (!mounted) return NavigationDecision.prevent;
-          var uri = Uri.parse(request.url);
+          final uri = Uri.parse(request.url);
+          final redirect = Platform.isIOS ? pixivLoginRedirect(uri) : null;
+          if (redirect != null && redirect.host.contains('account')) {
+            if (!_handlingLogin) {
+              _handlingLogin = true;
+              final loggedIn = await Leader.pushWithUri(context, redirect);
+              if (!loggedIn) _handlingLogin = false;
+            }
+            return NavigationDecision.prevent;
+          }
           if (uri.scheme == "pixiv") {
             Leader.pushWithUri(context, uri);
             Navigator.of(context).pop("OK");

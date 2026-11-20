@@ -1,3 +1,4 @@
+import 'package:pixez/component/ipad_surface.dart';
 /*
  * Copyright (C) 2020. by perol_notsf, All rights reserved
  *
@@ -54,7 +55,7 @@ class _NovelNewPageState extends State<NovelNewPage>
       child: Column(
         children: [
           AppBar(
-            title: TabBar(
+            title: IPadPageTabs(tabs: TabBar(
               onTap: (i) {
                 HapticUtil.selectionClick();
               },
@@ -74,7 +75,7 @@ class _NovelNewPageState extends State<NovelNewPage>
                   text: I18n.of(context).follow,
                 )
               ],
-            ),
+            )),
             actions: [
               if (accountStore.now != null)
                 Padding(

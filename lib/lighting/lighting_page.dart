@@ -49,6 +49,7 @@ class _WaterFallLoadingState extends State<WaterFallLoading> {
 class LightingList extends StatefulWidget {
   final LightSource source;
   final Widget? header;
+  final double topInset;
   final bool? isNested;
   final ScrollController? scrollController;
   final String? portal;
@@ -59,6 +60,7 @@ class LightingList extends StatefulWidget {
       {Key? key,
       required this.source,
       this.header,
+      this.topInset = 0,
       this.isNested,
       this.scrollController,
       this.portal,
@@ -170,7 +172,7 @@ class _LightingListState extends State<LightingList> {
           childBuilder: (context, physics) => WaterfallFlow.builder(
             physics: physics,
             controller: widget.isNested ?? false ? null : _scrollController,
-            padding: EdgeInsets.all(5.0),
+            padding: EdgeInsets.fromLTRB(5, 5 + widget.topInset, 5, 5),
             itemCount: _store.iStores.length,
             itemBuilder: (context, index) {
               return _buildItem(index);
@@ -197,7 +199,10 @@ class _LightingListState extends State<LightingList> {
 
   Widget _buildContent(context) {
     return _store.errorMessage != null
-        ? _buildErrorContent(context)
+        ? Padding(
+            padding: EdgeInsets.only(top: widget.topInset),
+            child: _buildErrorContent(context),
+          )
         : _store.iStores.isNotEmpty
             ? (widget.header != null
                 ? _buildWithHeader(context)
@@ -275,7 +280,10 @@ class _LightingListState extends State<LightingList> {
             controller: widget.isNested ?? false ? null : _scrollController,
             slivers: [
               SliverToBoxAdapter(
-                child: Container(child: widget.header),
+                child: Padding(
+                  padding: EdgeInsets.only(top: widget.topInset),
+                  child: widget.header,
+                ),
               ),
               SliverWaterfallFlow(
                 gridDelegate: _buildGridDelegate(),

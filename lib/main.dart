@@ -1,3 +1,5 @@
+import 'package:pixez/page/hello/setting/demo_mode.dart';
+import 'package:pixez/page/hello/hello_page.dart' show iPadRailObserver, IPadRailLayer;
 /*
  * Copyright (C) 2020. by perol_notsf, All rights reserved
  *
@@ -17,9 +19,10 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:bot_toast/bot_toast.dart';
-import 'package:cupertino_ui/cupertino_ui.dart'
-    show CupertinoPageTransitionsBuilder;
+import 'package:pixez/page/picture/artwork_edge_back.dart';
 import 'package:dynamic_color/dynamic_color.dart';
+import 'package:flutter/foundation.dart'
+    show LicenseEntryWithLineBreaks, LicenseRegistry;
 import 'package:flutter/material.dart' as legacy_material show ColorScheme;
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/scheduler.dart';
@@ -67,9 +70,16 @@ final Fetcher fetcher = new Fetcher();
 final FullScreenStore fullScreenStore = FullScreenStore();
 
 main(List<String> args) async {
+  WidgetsFlutterBinding.ensureInitialized();
+  if (Platform.isIOS) await DemoMode.initialize();
   await Rhttp.init();
   await MmapCache.init();
-  WidgetsFlutterBinding.ensureInitialized();
+  LicenseRegistry.addLicense(() async* {
+    yield LicenseEntryWithLineBreaks(
+      [Constants.displayName],
+      await rootBundle.loadString('LICENSE'),
+    );
+  });
 
   if (Platform.isWindows || Platform.isLinux) {
     // sqflite ffi init
@@ -208,9 +218,11 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                   );
                 }
                 return MaterialApp(
+                  debugShowCheckedModeBanner: false,
                   navigatorObservers: [
                     BotToastNavigatorObserver(),
                     routeObserver,
+                    iPadRailObserver,
                   ],
                   locale: userSetting.locale,
                   home: Builder(
@@ -226,13 +238,25 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                       );
                     },
                   ),
-                  title: 'PixEz',
+                  title: Constants.displayName,
                   builder: (context, child) {
-                    if (Platform.isIOS)
-                      child = _buildMaskBuilder(context, child);
-                    child = botToastBuilder(context, child);
+                    if (Platform.isIOS && MediaQuery.sizeOf(context).shortestSide >= 600) {
+                      final theme = Theme.of(context);
+                      final dark = theme.brightness == Brightness.dark;
+                      final scheme = ColorScheme.fromSeed(
+                        seedColor: Colors.grey, brightness: theme.brightness,
+                        dynamicSchemeVariant: DynamicSchemeVariant.monochrome,
+                      ).copyWith(surface: dark ? Colors.black : Colors.white, surfaceTint: Colors.transparent);
+                      child = Theme(data: theme.copyWith(colorScheme: scheme,
+                        primaryColor: scheme.primary, scaffoldBackgroundColor: scheme.surface,
+                        canvasColor: scheme.surface, cardColor: scheme.surface,
+                        chipTheme: theme.chipTheme.copyWith(backgroundColor: scheme.surfaceContainerLow),
+                        dialogTheme: theme.dialogTheme.copyWith(backgroundColor: scheme.surface),
+                      ), child: IPadRailLayer(child: child ?? const SizedBox.shrink()));
+                    }
+                    if (Platform.isIOS) child = _buildMaskBuilder(context, child);
                     I18n.context = context;
-                    return child;
+                    return botToastBuilder(context, child);
                   },
                   themeMode: userSetting.themeMode,
                   theme: ThemeData(
@@ -241,7 +265,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                     pageTransitionsTheme: const PageTransitionsTheme(
                       builders: {
                         TargetPlatform.android: ZoomPageTransitionsBuilder(),
-                        TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+                        TargetPlatform.iOS: ArtworkPageTransitionsBuilder(),
                       },
                     ),
                     primaryColor: lightColorScheme.primary,
@@ -262,7 +286,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                     pageTransitionsTheme: const PageTransitionsTheme(
                       builders: {
                         TargetPlatform.android: ZoomPageTransitionsBuilder(),
-                        TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+                        TargetPlatform.iOS: ArtworkPageTransitionsBuilder(),
                       },
                     ),
                     scaffoldBackgroundColor: userSetting.isAMOLED

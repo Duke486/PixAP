@@ -1,3 +1,5 @@
+import 'package:pixez/er/database_directory.dart';
+import 'package:pixez/page/hello/setting/demo_mode.dart';
 /*
  * Copyright (C) 2020. by perol_notsf, All rights reserved
  *
@@ -123,12 +125,13 @@ create table $tableIllustPersist (
   }
 
   Future<String> getPath() async {
+    if (DemoMode.active) return demoDatabaseDirectory();
     if (Platform.isIOS) {
       try {
         final PathProviderFoundation providerFoundation =
             PathProviderFoundation();
         final path = await providerFoundation.getContainerPath(
-          appGroupIdentifier: "group.pixez",
+          appGroupIdentifier: "group.com.duke486.pixez.ipad",
         );
         final directory = Directory(Path.join(path!, "DB"));
         if (!(await directory.exists())) {
@@ -137,7 +140,7 @@ create table $tableIllustPersist (
         return directory.path;
       } catch (e) {}
     }
-    return await getDatabasesPath();
+    return await demoDatabaseDirectory();
   }
 
   Future open() async {

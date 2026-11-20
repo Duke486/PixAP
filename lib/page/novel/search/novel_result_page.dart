@@ -1,3 +1,5 @@
+import 'package:pixez/page/hello/hello_page.dart' show IPadReadingPage;
+import 'package:pixez/component/ipad_surface.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:pixez/i18n.dart';
 import 'package:pixez/main.dart';
@@ -28,12 +30,12 @@ class _NovelResultPageState extends State<NovelResultPage> {
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
+    return IPadReadingPage(child: DefaultTabController(
       length: 2,
       child: Scaffold(
         appBar: AppBar(
           title: Text(widget.word),
-          bottom: TabBar(
+          bottom: PreferredSize(preferredSize: const Size.fromHeight(48), child: IPadPageTabs(tabs: TabBar(
             onTap: (i) {
               HapticUtil.selectionClick();
             },
@@ -44,7 +46,7 @@ class _NovelResultPageState extends State<NovelResultPage> {
             Tab(
               child: Text(I18n.of(context).painter),
             ),
-          ]),
+          ]))),
         ),
         body: TabBarView(
           children: [
@@ -56,6 +58,6 @@ class _NovelResultPageState extends State<NovelResultPage> {
           ],
         ),
       ),
-    );
+    ));
   }
 }

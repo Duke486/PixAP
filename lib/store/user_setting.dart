@@ -1,3 +1,4 @@
+import 'package:pixez/page/hello/setting/demo_mode.dart';
 /*
  * Copyright (C) 2020. by perol_notsf, All rights reserved
  *
@@ -148,7 +149,7 @@ abstract class _UserSetting with Store {
   @observable
   int mangaQuality = 0;
   @observable
-  int languageNum = 0;
+  int languageNum = defaultLanguageIndex;
   @observable
   WelcomePageType welcomePageType = WelcomePageType.home;
   @observable
@@ -172,11 +173,11 @@ abstract class _UserSetting with Store {
   @observable
   String? pictureSource = ImageHost;
 
-  bool get needsCompatibleDnsFetch => networkMode == NetworkMode.compat;
+  bool get needsCompatibleDnsFetch => !DemoMode.active && networkMode == NetworkMode.compat;
   @observable
   double novelFontsize = 16.0;
   @observable
-  dynamic locale = Locale('en', 'US'); //stupid mobx generator
+  dynamic locale = Languages[defaultLanguageIndex].locale; //stupid mobx generator
   @observable
   TextStyle novelTextStyle = TextStyle();
   @observable
@@ -455,12 +456,17 @@ abstract class _UserSetting with Store {
     }
     isAMOLED = prefs.getBool(IS_AMOLED_KEY) ?? false;
     isTopMode = prefs.getBool(IS_TOPMODE_KEY) ?? false;
-    languageNum = prefs.getInt(LANGUAGE_NUM_KEY) ?? 0;
+    final savedLanguage = prefs.getInt(LANGUAGE_NUM_KEY);
+    languageNum = savedLanguage ?? defaultLanguageIndex;
+    if (languageNum < 0 || languageNum >= Languages.length) {
+      languageNum = defaultLanguageIndex;
+      await prefs.setInt(LANGUAGE_NUM_KEY, languageNum);
+    }
     await _restoreNetworkMode();
     pictureSource = networkMode.allowsImageSource
         ? (prefs.getString(PICTURE_SOURCE_KEY) ?? ImageHost)
         : ImageHost;
-    ApiClient.Accept_Language = languageList[languageNum];
+    ApiClient.Accept_Language = Languages[languageNum].language;
     await _applyNetworkClients();
     apiClient.httpClient.options.headers[HttpHeaders.acceptLanguageHeader] =
         ApiClient.Accept_Language;
@@ -474,8 +480,10 @@ abstract class _UserSetting with Store {
     final hCrossAdapterV = prefs.getInt(H_CROSS_ADAPT_WIDTH_KEY) ?? 100;
     crossAdapterWidth = min(2160, max(50, crossAdapterV));
     hCrossAdapterWidth = min(2160, max(50, hCrossAdapterV));
-    crossCount = prefs.getInt(CROSS_COUNT_KEY) ?? 2;
-    hCrossCount = prefs.getInt(H_CROSS_COUNT_KEY) ?? 4;
+    final display = WidgetsBinding.instance.platformDispatcher.views.first.display;
+    final tablet = display.size.shortestSide / display.devicePixelRatio >= 600;
+    crossCount = prefs.getInt(CROSS_COUNT_KEY) ?? (Platform.isIOS && tablet ? 3 : 2);
+    hCrossCount = prefs.getInt(H_CROSS_COUNT_KEY) ?? (Platform.isIOS && !tablet ? 3 : 4);
     feedAIBadge = prefs.getBool(FEED_AI_BADGE_KEY) ?? true;
     padMode = prefs.getInt(PAD_MODE_KEY) ?? 0;
     await Hoster.initMap();
@@ -517,6 +525,7 @@ abstract class _UserSetting with Store {
     }
 
     final legacyValue = prefs.getBool(LEGACY_DISABLE_BYPASS_SNI_KEY);
+    if (legacyValue == null && Platform.isIOS) return NetworkMode.standard;
     return legacyValue == true ? NetworkMode.standard : NetworkMode.ech;
   }
 
@@ -724,7 +733,7 @@ abstract class _UserSetting with Store {
     singleFolder = value;
   }
 
-  final languageList = Languages.map((e) => e.language).toList();
+  final languageList = Languages.map((e) => e.name).toList();
 
   List<Locale> iSupportedLocales = Languages.map((e) => e.locale).toList();
 
@@ -732,7 +741,7 @@ abstract class _UserSetting with Store {
   setLanguageNum(int value) async {
     await prefs.setInt(LANGUAGE_NUM_KEY, value);
     languageNum = value;
-    ApiClient.Accept_Language = languageList[languageNum];
+    ApiClient.Accept_Language = Languages[languageNum].language;
     apiClient.httpClient.options.headers[HttpHeaders.acceptLanguageHeader] =
         ApiClient.Accept_Language;
     locale = iSupportedLocales[languageNum];

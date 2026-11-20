@@ -1,12 +1,9 @@
-import 'dart:io';
-
 import 'package:animations/animations.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:pixez/er/leader.dart';
 import 'package:pixez/er/prefer.dart';
 import 'package:pixez/main.dart';
-import 'package:pixez/network/api_client.dart';
-import 'package:pixez/page/about/languages.dart';
+import 'package:pixez/i18n.dart';
 import 'package:pixez/fluent/page/Init/init_page.dart';
 import 'package:pixez/fluent/page/network/network_page.dart';
 
@@ -22,86 +19,105 @@ class _GuidePageState extends State<GuidePage> {
 
   @override
   void initState() {
-    _pageList = [InitPage(), NetworkPage()];
+    _pageList = [InitPage(), const NetworkPage(embedded: true)];
     super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
-    return ScaffoldPage(
-      content: SafeArea(
-        child: Column(
-          children: <Widget>[
-            Expanded(
-              child: PageTransitionSwitcher(
-                duration: const Duration(milliseconds: 300),
-                reverse: !isNext,
-                transitionBuilder: (
-                  Widget child,
-                  Animation<double> animation,
-                  Animation<double> secondaryAnimation,
-                ) {
-                  return SharedAxisTransition(
-                    child: child,
-                    animation: animation,
-                    secondaryAnimation: secondaryAnimation,
-                    transitionType: SharedAxisTransitionType.horizontal,
-                  );
-                },
-                child: _pageList[index],
-              ),
-            ),
-            Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 15.0, vertical: 10),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: <Widget>[
-                  AnimatedOpacity(
-                    duration: Duration(milliseconds: 300),
-                    opacity: index == 0 ? 0 : 1,
-                    child: HyperlinkButton(
-                      onPressed: () {
-                        int backValue = index - 1;
-                        if (backValue == 1 || backValue == 0) {
-                          setState(() {
-                            index = backValue;
-                            isNext = false;
-                          });
-                        }
-                      },
-                      child: const Text('BACK'),
-                    ),
-                  ),
-                  FilledButton(
-                    onPressed: () async {
-                      int nextValue = index + 1;
-                      if (nextValue == 1) {
-                        await Prefer.setInt(
-                            'language_num', userSetting.languageNum);
-                        //有可能用户啥都没选
-                        final languageList =
-                            Languages.map((e) => e.language).toList();
-                        ApiClient.Accept_Language =
-                            languageList[userSetting.languageNum];
-                        apiClient.httpClient.options
-                                .headers[HttpHeaders.acceptLanguageHeader] =
-                            ApiClient.Accept_Language;
-                        setState(() {
-                          index = nextValue;
-                          isNext = true;
-                        });
-                      } else if (nextValue == 2) {
-                        await Prefer.setBool('guide_enable', false);
-                        Leader.pushUntilHome(context);
-                      }
-                    },
-                    child: const Text('NEXT'),
-                  ),
-                ],
-              ),
-            ),
+    final theme = FluentTheme.of(context);
+    final strings = I18n.of(context);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: RadialGradient(
+          center: Alignment.topLeft,
+          radius: 1.6,
+          colors: [
+            theme.accentColor.withValues(alpha: .28),
+            theme.scaffoldBackgroundColor,
           ],
+        ),
+      ),
+      child: SafeArea(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 540, maxHeight: 660),
+              child: Acrylic(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24),
+                  side: BorderSide(
+                    color: theme.accentColor.withValues(alpha: .2),
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: PageTransitionSwitcher(
+                        duration: const Duration(milliseconds: 300),
+                        reverse: !isNext,
+                        transitionBuilder:
+                            (child, animation, secondaryAnimation) {
+                              return SharedAxisTransition(
+                                animation: animation,
+                                secondaryAnimation: secondaryAnimation,
+                                transitionType:
+                                    SharedAxisTransitionType.horizontal,
+                                fillColor: Colors.transparent,
+                                child: child,
+                              );
+                            },
+                        child: _pageList[index],
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          if (index == 1) ...[
+                            Button(
+                              onPressed: () => setState(() {
+                                index = 0;
+                                isNext = false;
+                              }),
+                              child: Text(
+                                FluentLocalizations.of(
+                                  context,
+                                ).backButtonTooltip,
+                              ),
+                            ),
+                            const Spacer(),
+                          ],
+                          FilledButton(
+                            onPressed: () async {
+                              if (index == 0) {
+                                await userSetting.setLanguageNum(
+                                  userSetting.languageNum,
+                                );
+                                if (mounted)
+                                  setState(() {
+                                    index = 1;
+                                    isNext = true;
+                                  });
+                              } else {
+                                await Prefer.setBool('guide_enable', false);
+                                if (mounted) Leader.pushUntilHome(context);
+                              }
+                            },
+                            child: Text(
+                              index == 0 ? strings.next : strings.complete,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
         ),
       ),
     );

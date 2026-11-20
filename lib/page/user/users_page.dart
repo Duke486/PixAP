@@ -1,3 +1,4 @@
+import 'package:pixez/page/hello/hello_page.dart';
 /*
  * Copyright (C) 2020. by perol_notsf, All rights reserved
  *
@@ -14,6 +15,8 @@
  *
  */
 
+import 'package:pixez/component/ipad_surface.dart';
+import 'package:pixez/component/progressive_toolbar_blur.dart';
 import 'dart:io';
 
 import 'package:bot_toast/bot_toast.dart';
@@ -126,7 +129,12 @@ class _UsersPageState extends State<UsersPage> with TickerProviderStateMixin {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => IPadReadingPage(
+    landscapeSideInset: 16,
+    child: _content(context),
+  );
+
+  Widget _content(BuildContext context) {
     return Observer(
       builder: (_) {
         if (muteStore.banUserIds.isNotEmpty) {
@@ -262,20 +270,45 @@ class _UsersPageState extends State<UsersPage> with TickerProviderStateMixin {
   }
 
   List<Widget> _HeaderSlivers(bool? innerBoxIsScrolled, BuildContext context) {
+    final tablet = usesIPadLayout(context);
+    final landscapeTablet =
+        tablet && MediaQuery.orientationOf(context) == Orientation.landscape;
+    final profileConstraints = BoxConstraints(
+      maxWidth: landscapeTablet ? 700 : (tablet ? 780 : double.infinity),
+    );
+    const compactHeight = 46.0;
+    final tabs = TabBar(
+      controller: _tabController,
+      onTap: (index) {
+        HapticUtil.selectionClick();
+        if (_tabController.index == index && !_tabController.indexIsChanging &&
+            _scrollController.hasClients) {
+          _scrollController.animateTo(0,
+            duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
+        }
+      },
+      tabs: [
+        Tab(text: I18n.of(context).works),
+        Tab(text: I18n.of(context).bookmark),
+        Tab(text: I18n.of(context).user_page_info_title),
+      ],
+    );
     return [
       SliverOverlapAbsorber(
         handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
         sliver: SliverAppBar(
           pinned: true,
           elevation: 0.0,
-          forceElevated: innerBoxIsScrolled ?? false,
+          forceElevated: !tablet && (innerBoxIsScrolled ?? false),
+          forceMaterialTransparency: tablet,
+          toolbarHeight: tablet ? compactHeight : kToolbarHeight,
           expandedHeight:
               userStore.userDetail?.profile.background_image_url != null
-              ? MediaQuery.of(context).size.width / 2 +
-                    205 -
+              ? (usesIPadLayout(context) ? 283.4 : MediaQuery.of(context).size.width / 2) +
+                    (tablet ? 177 : 205) -
                     MediaQuery.of(context).padding.top
-              : 300,
-          leading: CommonBackArea(),
+              : (tablet ? 272 : 300),
+          leading: IPadSurface(child: CommonBackArea()),
           actions: <Widget>[
             Builder(
               builder: (context) {
@@ -294,15 +327,25 @@ class _UsersPageState extends State<UsersPage> with TickerProviderStateMixin {
                 );
               },
             ),
-            _buildPopMenu(context),
+            IPadSurface(child: _buildPopMenu(context)),
           ],
-          flexibleSpace: FlexibleSpaceBar(
+          flexibleSpace: _profileToolbar(
+            context, tablet, compactHeight, tabs, FlexibleSpaceBar(
             collapseMode: CollapseMode.pin,
             background: Container(
               color: Theme.of(context).cardColor,
               child: Stack(
                 children: <Widget>[
-                  _buildBackground(context),
+                  if (landscapeTablet)
+                    Align(
+                      alignment: Alignment.topCenter,
+                      child: ConstrainedBox(
+                        constraints: profileConstraints,
+                        child: _buildBackground(context),
+                      ),
+                    )
+                  else
+                    _buildBackground(context),
                   _buildFakeBg(context),
                   Align(
                     alignment: Alignment.bottomCenter,
@@ -310,14 +353,29 @@ class _UsersPageState extends State<UsersPage> with TickerProviderStateMixin {
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
-                        _buildHeader(context),
+                        Align(
+                          child: ConstrainedBox(
+                            constraints: profileConstraints,
+                            child: _buildHeader(context),
+                          ),
+                        ),
                         Container(
                           color: Theme.of(context).cardColor,
                           child: Column(
                             children: <Widget>[
-                              _buildNameFollow(context),
-                              _buildComment(context),
-                              Tab(text: " "),
+                              Align(
+                                child: ConstrainedBox(
+                                  constraints: profileConstraints,
+                                  child: _buildNameFollow(context),
+                                ),
+                              ),
+                              Align(
+                                child: ConstrainedBox(
+                                  constraints: profileConstraints,
+                                  child: _buildComment(context),
+                                ),
+                              ),
+                              if (tablet) const SizedBox(height: compactHeight) else const Tab(text: " "),
                             ],
                           ),
                         ),
@@ -327,29 +385,8 @@ class _UsersPageState extends State<UsersPage> with TickerProviderStateMixin {
                 ],
               ),
             ),
-          ),
-          bottom: ColoredTabBar(
-            Theme.of(context).cardColor,
-            TabBar(
-              controller: _tabController,
-              onTap: (index) {
-                HapticUtil.selectionClick();
-                if (_tabController.index == index &&
-                    _scrollController.hasClients) {
-                  _scrollController.animateTo(
-                    0,
-                    duration: const Duration(milliseconds: 300),
-                    curve: Curves.easeOut,
-                  );
-                }
-              },
-              tabs: [
-                Tab(text: I18n.of(context).works),
-                Tab(text: I18n.of(context).bookmark),
-                Tab(text: I18n.of(context).user_page_info_title),
-              ],
-            ),
-          ),
+          )),
+          bottom: tablet ? null : ColoredTabBar(Theme.of(context).cardColor, tabs),
         ),
       ),
       // SliverPersistentHeader(
@@ -399,6 +436,23 @@ class _UsersPageState extends State<UsersPage> with TickerProviderStateMixin {
     ];
   }
 
+  Widget _profileToolbar(
+    BuildContext context, bool tablet, double height, TabBar tabs, Widget background,
+  ) {
+    if (!tablet) return background;
+    final top = MediaQuery.paddingOf(context).top + height;
+    return LayoutBuilder(builder: (context, box) {
+      final inset = (1 - (box.maxHeight - top) / height).clamp(0.0, 1.0) * 100;
+      return Stack(fit: StackFit.expand, children: [
+        background,
+        Positioned(top: 0, left: 0, right: 0, height: top,
+          child: const ProgressiveToolbarBlur()),
+        Positioned(left: inset, right: inset, bottom: 0, height: height,
+          child: Center(child: IPadPageTabs(maxWidth: 640, tabs: tabs))),
+      ]);
+    });
+  }
+
   //为什么会需要这段？因为外部Column无法使子元素贴紧，子元素之间在真机上总是有spacing，所以底部又需要一个cardColor来填充
   Widget _buildFakeBg(BuildContext context) {
     return Align(
@@ -427,7 +481,7 @@ class _UsersPageState extends State<UsersPage> with TickerProviderStateMixin {
     return Container(
       width: MediaQuery.of(context).size.width,
       height: userStore.userDetail?.profile.background_image_url != null
-          ? MediaQuery.of(context).size.width / 2
+          ? (usesIPadLayout(context) ? 283.4 : MediaQuery.of(context).size.width / 2)
           : MediaQuery.of(context).padding.top + 160,
       child: userStore.userDetail != null
           ? userStore.userDetail!.profile.background_image_url != null
@@ -482,7 +536,7 @@ class _UsersPageState extends State<UsersPage> with TickerProviderStateMixin {
                     child: CachedNetworkImage(
                       imageUrl:
                           userStore.userDetail!.profile.background_image_url!,
-                      fit: BoxFit.fitWidth,
+                      fit: usesIPadLayout(context) ? BoxFit.cover : BoxFit.fitWidth,
                       cacheManager: pixivCacheManager,
                       httpHeaders: Hoster.header(
                         url: userStore.userDetail!.profile.background_image_url,
@@ -510,7 +564,7 @@ class _UsersPageState extends State<UsersPage> with TickerProviderStateMixin {
                     title: Text('${I18n.of(context).block_user}?'),
                     actions: <Widget>[
                       TextButton(
-                        child: Text("OK"),
+                        child: Text(I18n.of(context).ok),
                         onPressed: () {
                           Navigator.of(context).pop("OK");
                         },
@@ -934,5 +988,7 @@ class ColoredTabBar extends Container implements PreferredSizeWidget {
   Size get preferredSize => tabBar.preferredSize;
 
   @override
-  Widget build(BuildContext context) => Container(color: color, child: tabBar);
+  Widget build(BuildContext context) => usesIPadLayout(context)
+      ? Padding(padding: const EdgeInsets.symmetric(vertical: 5), child: IPadPageTabs(maxWidth: 640, tabs: tabBar))
+      : Container(color: color, child: tabBar);
 }

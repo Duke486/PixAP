@@ -21,7 +21,10 @@ import 'package:pixez/models/spotlight_response.dart';
 import 'package:pixez/network/api_client.dart';
 part 'spotlight_store.g.dart';
 
-class SpotlightStore = _SpotlightStoreBase with _$SpotlightStore;
+class SpotlightStore extends _SpotlightStoreBase with _$SpotlightStore {
+  SpotlightStore(EasyRefreshController? controller, {int? pageSize})
+    : super(controller, pageSize: pageSize);
+}
 
 abstract class _SpotlightStoreBase with Store {
   final ApiClient client = apiClient;
@@ -29,20 +32,55 @@ abstract class _SpotlightStoreBase with Store {
   String? nextUrl;
   final EasyRefreshController? _controller;
 
-  _SpotlightStoreBase(this._controller);
+  _SpotlightStoreBase(this._controller, {this.pageSize});
+
+  final int? pageSize;
+  final List<SpotlightArticle> _pending = [];
+
+  // Pixiv controls the API page size. Buffer any extra items for the next load.
+  Future<(List<SpotlightArticle>, String?)> _collect(
+    List<SpotlightArticle> items,
+    String? cursor,
+  ) async {
+    final limit = pageSize;
+    final visited = <String>{};
+    while (limit != null &&
+        items.length < limit &&
+        cursor != null &&
+        cursor.isNotEmpty &&
+        visited.add(cursor)) {
+      final response = await client.getNext(cursor);
+      final result = SpotlightResponse.fromJson(response.data);
+      items.addAll(result.spotlightArticles);
+      cursor = result.nextUrl;
+    }
+    return (items, visited.contains(cursor) ? null : cursor);
+  }
+
+  void _append(List<SpotlightArticle> items, String? cursor) {
+    final count = (pageSize ?? items.length).clamp(0, items.length);
+    articles.addAll(items.take(count));
+    _pending
+      ..clear()
+      ..addAll(items.skip(count));
+    nextUrl = cursor;
+  }
 
   bool _lock = false;
   @action
   Future<bool> fetch() async {
     if (_lock) return false;
     _lock = true;
-    nextUrl = null;
     try {
       Response response = await client.getSpotlightArticles("all");
       final result = SpotlightResponse.fromJson(response.data);
+      final (items, cursor) = await _collect(
+        List.of(result.spotlightArticles),
+        result.nextUrl,
+      );
       articles.clear();
-      articles.addAll(result.spotlightArticles);
-      nextUrl = result.nextUrl;
+      _append(items, cursor);
+      _controller?.resetFooter();
       _controller?.finishRefresh(IndicatorResult.success);
       return true;
     } catch (e) {
@@ -58,26 +96,29 @@ abstract class _SpotlightStoreBase with Store {
     if (_lock) return false;
     _lock = true;
     try {
-      if (nextUrl != null && nextUrl!.isNotEmpty) {
-        try {
-          Response response = await client.getNext(nextUrl!);
-          final results = SpotlightResponse.fromJson(response.data);
-          nextUrl = results.nextUrl;
-          articles.addAll(results.spotlightArticles);
-          _controller?.finishLoad(nextUrl == null
-              ? IndicatorResult.noMore
-              : IndicatorResult.success);
-          return true;
-        } catch (e) {
-          _controller?.finishLoad(IndicatorResult.fail);
-          return false;
-        }
-      } else {
-        _controller?.finishLoad(IndicatorResult.noMore);
-        return true;
+      if (_pending.isNotEmpty || nextUrl?.isNotEmpty == true) {
+        final (items, cursor) = pageSize == null
+            ? await _fetchNext()
+            : await _collect(List.of(_pending), nextUrl);
+        _append(items, cursor);
       }
+      _controller?.finishLoad(
+        _pending.isNotEmpty || nextUrl?.isNotEmpty == true
+            ? IndicatorResult.success
+            : IndicatorResult.noMore,
+      );
+      return true;
+    } catch (_) {
+      _controller?.finishLoad(IndicatorResult.fail);
+      return false;
     } finally {
       _lock = false;
     }
+  }
+
+  Future<(List<SpotlightArticle>, String?)> _fetchNext() async {
+    final response = await client.getNext(nextUrl!);
+    final result = SpotlightResponse.fromJson(response.data);
+    return (result.spotlightArticles, result.nextUrl);
   }
 }

@@ -1,42 +1,83 @@
-<img src="./android/app/src/main/res/mipmap-xxhdpi/ic_launcher_round.png" alt="logo" width="144" height="144" align="right" />
+<div align="center">
 
-# PixEz Flutter ![](https://camo.githubusercontent.com/f2b4fa6779c8a4825e0e7347076746a2047ed100/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f6c6963656e73652d47504c2d2d332e302d6f72616e67652e737667)
+<img src="assets/images/pixap_login_icon.png" alt="PixAP 应用图标" width="96">
 
-[English README Here](./.github/README_en.md)<br />
-[README Bahasa Indonesia klik disini](./.github/README_id.md)
+# PixAP
 
-使用 Flutter 编写的 pixiv 第三方客户端。
+### 果味的 PixEz · 为 Apple 全面重新设计
 
-同样支持中国大陆地区直连。
+以 Apple 最新的界面风格重新设计的 pixiv 第三方客户端。原生液态玻璃（Liquid Glass）融入悬浮导航与工具栏，从首页画廊到作品详情、搜索和设置，整个浏览体验焕然一新。
 
-🎵 Mili - In Hell We Live, Lament 🎵 
+[下载 IPA](https://github.com/Duke486/PixAP/releases/latest) · [安装说明](#安装) · [问题反馈](https://github.com/Duke486/PixAP/issues)
 
-# 下载
+</div>
 
-推荐渠道顺序为从左到右。
+> **原项目 [PixEz Flutter](https://github.com/Notsfsssf/pixez-flutter)** 由 Perol_Notsfsssf 发起。PixAP 由 Mark 在其基础上为 Apple 设备改造，沿用 pixiv 接入与客户端功能，重新设计界面和交互。感谢原作者与所有为 PixEz Flutter 编写代码、维护文档和翻译的贡献者。
 
-|系统|应用市场|GitHub|云盘|
-|:---:|:---:|:---:|:---:|
-|Android|[Google Play](https://play.google.com/store/apps/details?id=com.perol.play.pixez)|[Release](https://github.com/Notsfsssf/pixez-flutter/releases/latest)|[蓝奏云](https://wwa.lanzoui.com/b0ded45id)<br />**临时，不推荐**|
-|iOS|[App Store(美区)](https://apps.apple.com/us/app/pixez/id1494435126)|[Action Ipa](https://github.com/Notsfsssf/pixez-flutter/actions/workflows/build_ios.yml)|/|
-|Windows|/|[Nightly MSIX](https://github.com/Notsfsssf/pixez-flutter/actions/workflows/build_windows.yml)|/|
+![iPad 首页的亮点推荐、插画画廊与液态玻璃侧栏](docs/screenshots/home.jpg)
 
-# 预览
+## 为 Apple 全面重新设计
 
-|![Preview](./.github/preview/2.jpg) | ![Preview](./.github/preview/1.jpg) | 
-|:-------------------:|:------------------------:|
+iPad 横屏用悬浮侧栏连接首页、排行榜、收藏、搜索和更多，从多列画廊点进作品详情，再顺着作者和专题继续探索。设置采用双栏，切换偏好时可以一直看到设置目录。
 
-# 关于项目 / About Repository
+在 iOS / iPadOS 26 及以上，导航与工具栏使用 SwiftUI 和 UIKit 的原生 Liquid Glass API。玻璃控件随内容呈现透光效果，可交互的材质与导航选中动效回应触控。新版图标采用 Apple Icon Composer 分层资源。
 
-如你所见，Flutter 是一个能够帮助开发者快速开发界面的框架。
+<table>
+<tr>
+<td width="50%" valign="top">
+<img src="docs/screenshots/artist.jpg" width="100%" alt="iPad 作者主页">
+<h3>从作品找到作者</h3>
+<p>在作者主页浏览作品、收藏与资料，插画与漫画分别呈现。</p>
+</td>
+<td width="50%" valign="top">
+<img src="docs/screenshots/following.jpg" width="100%" alt="iPad 已关注作者列表">
+<h3>一眼看到关注的作者</h3>
+<p>关注列表用作品预览展示每位作者，也能切换到收藏、动态和追更列表。</p>
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+<img src="docs/screenshots/search.jpg" width="100%" alt="iPad 搜索页">
+<h3>从关键词、ID 或链接开始</h3>
+<p>搜索入口支持关键词、作品 ID 与 pixiv 链接，下方可直接探索推荐标签。</p>
+</td>
+<td width="50%" valign="top">
+<img src="docs/screenshots/settings.jpg" width="100%" alt="iPad 双栏偏好设置">
+<h3>按自己的习惯浏览</h3>
+<p>在双栏设置中调整画质、网格列数和欢迎页，也能从同一侧栏打开漫画与小说。</p>
+</td>
+</tr>
+</table>
 
-拥有的 Hot Reload 热重载，可以极大缩减 debug 成本，所见即所得，快速交流；
+## 安装
 
-利用 PlatformChannel，可以为不同平台编写不同的平台特性的独有功能；
+1. 在 [GitHub Releases](https://github.com/Duke486/PixAP/releases/latest) 下载 `PixAP-iOS.ipa`。
+2. 用自己的签名工具为 IPA 签名，再安装到 iPhone 或 iPad。
 
-应用使用了 `mobx`，`flutter_bloc` (逐步弃用)，`provider` 进行状态管理，`custompainter` 来播放 ugoira。
+IPA 为未签名版。推荐在 **iOS / iPadOS 26 或更新版本**体验原生液态玻璃。本次提供 iPhone 与 iPad 安装包。
 
-## 贡献 / Contribute
+## 从源码构建
+
+使用带 iOS 26 或更新 SDK 的 Xcode、[mise.toml](mise.toml) 指定的 Flutter 版本，以及 Rust 工具链。执行以下命令构建未签名的设备版，也可以参考 [iOS 构建流程示例](docs/build-workflows/build_ios.yml)。
+
+```sh
+flutter pub get
+(cd plugins/rhttp/rhttp && flutter pub get && dart run build_runner build)
+dart run build_runner build
+flutter build ios --release --no-codesign
+```
+
+Xcode 工程使用 [Flutter 构建脚本](ios/Flutter/build_with_xcode.sh)。Release 标签附有该 IPA 对应的源码。
+
+## 源码来源、感谢与许可
+
+PixAP 是独立维护的 PixEz Flutter 衍生项目，与 Apple、pixiv 及上游项目无官方关联。上游基线为 [`f11be4dd`](https://github.com/Notsfsssf/pixez-flutter/commit/f11be4ddf03775175006e4b3ebd70c446961f4e6)。Apple 界面重设计于 2026-11-20 首次发布，修改记录见提交历史。
+
+源码按 [GNU GPL v3](LICENSE) 发布。原有版权与许可声明保留在源码中，第三方组件的声明见各组件目录。
+
+<details>
+<summary><strong>上游贡献者与文档</strong></summary>
+
 
 本项目目前的贡献者列表如下：
 
@@ -52,20 +93,6 @@
   </tr>
 </table>
 
-如果你是有能人士，愿意为本项目贡献代码，请不要犹豫提交 Pull Request 吧！
+[英文说明](.github/README_en.md) · [印尼语说明](.github/README_id.md) · [常见问题](.github/FAQ.md)
 
-本应用也使用了 `intl` 进行国际化，欢迎贡献[翻译](lib/l10n/intl_en_US.arb)！
-
-觉得有些地方设计的不妥？同样欢迎分享设计。
-
-## 常见问题及交流反馈
-
-[使用指南 & 常见问题在这里](.github/FAQ.md)，反馈问题 / 加群询问之前请先看！（特别是旧原生版用户）
-
-邮件反馈：PxezFeedback@outlook.com
-
-也可以在 Telegram 群交流反馈：[@PixEzViewer](https://t.me/PixEzChannel)
-
-Discord: [@PixEz](https://discord.gg/Em9AeJbg)
-
-也可以进企鹅群交流经验或者反馈：815791942（闲聊为主）
+</details>

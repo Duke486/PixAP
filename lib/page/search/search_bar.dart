@@ -1,9 +1,10 @@
+import 'package:pixez/component/ipad_surface.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:pixez/i18n.dart';
 import 'package:pixez/page/search/suggest/search_suggestion_page.dart';
 
 class SearchBar extends StatefulWidget {
-  final VoidCallback? onSaucenao;
+  final ValueChanged<BuildContext>? onSaucenao;
   const SearchBar({Key? key, this.onSaucenao}) : super(key: key);
 
   @override
@@ -26,6 +27,22 @@ class _SearchBarState extends State<SearchBar> {
 
   @override
   Widget build(BuildContext context) {
+    if (usesIPadLayout(context)) {
+      return SizedBox(height: 48, child: Row(children: [
+        Expanded(child: InkWell(onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => SearchSuggestionPage())),
+          child: Padding(padding: const EdgeInsets.symmetric(horizontal: 16), child: Row(children: [
+            const Icon(Icons.search), const SizedBox(width: 10),
+            Expanded(child: Text(I18n.of(context).search_word_hint)),
+          ])))),
+        Builder(
+          builder: (anchor) => IconButton(
+            icon: const Icon(Icons.image_search_outlined),
+            onPressed: () => widget.onSaucenao?.call(anchor),
+          ),
+        ),
+      ]));
+    }
     return Container(
       margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
       decoration: BoxDecoration(
@@ -64,11 +81,11 @@ class _SearchBarState extends State<SearchBar> {
             ),
             Container(
               margin: const EdgeInsets.only(right: 8, left: 4),
-              child: IconButton(
-                icon: Icon(Icons.image_search),
-                onPressed: () {
-                  if (widget.onSaucenao != null) widget.onSaucenao!();
-                },
+              child: Builder(
+                builder: (anchor) => IconButton(
+                  icon: const Icon(Icons.image_search),
+                  onPressed: () => widget.onSaucenao?.call(anchor),
+                ),
               ),
             ),
           ],

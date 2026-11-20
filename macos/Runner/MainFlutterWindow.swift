@@ -63,6 +63,9 @@ class MainFlutterWindow: NSWindow, FlutterStreamHandler {
 
         RegisterGeneratedPlugins(registry: flutterViewController)
         super.awakeFromNib()
+        if let displayName = Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String {
+            title = displayName
+        }
     }
 
     func onListen(withArguments arguments: Any?, eventSink events: @escaping FlutterEventSink) -> FlutterError? {

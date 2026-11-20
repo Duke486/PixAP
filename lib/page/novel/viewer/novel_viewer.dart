@@ -14,6 +14,7 @@
  *
  */
 
+import 'package:pixez/component/ipad_surface.dart';
 import 'dart:convert';
 import 'dart:io';
 
@@ -179,8 +180,11 @@ class _NovelViewerPageState extends State<NovelViewerPage> {
   }
 
   Widget _buildBody(BuildContext context) {
+    final inset = usesIPadLayout(context)
+        ? ((MediaQuery.sizeOf(context).width - 760) / 2).clamp(16.0, double.infinity).toDouble()
+        : 0.0;
     return ListView.builder(
-      padding: EdgeInsets.all(0),
+      padding: EdgeInsets.symmetric(horizontal: inset),
       controller: _controller,
       itemBuilder: (context, index) {
         if (index == 0) {
@@ -215,7 +219,7 @@ class _NovelViewerPageState extends State<NovelViewerPage> {
       ),
       backgroundColor: Colors.transparent,
       actions: <Widget>[
-        NovelBookmarkButton(novel: _novelStore.novel!),
+        IPadSurface(child: NovelBookmarkButton(novel: _novelStore.novel!)),
         IconButton(
           onPressed: () {
             if (_novelStore.positionBooked)
