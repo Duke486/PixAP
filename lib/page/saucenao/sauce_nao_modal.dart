@@ -7,24 +7,18 @@ import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:html/parser.dart' show parse;
 import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
-import 'package:image_picker_android/image_picker_android.dart';
-import 'package:image_picker_platform_interface/image_picker_platform_interface.dart';
 import 'package:pixez/component/ipad_surface.dart';
 import 'package:pixez/component/pixiv_image.dart';
 import 'package:pixez/er/hoster.dart';
 import 'package:pixez/er/leader.dart';
-import 'package:pixez/er/prefer.dart';
 import 'package:pixez/i18n.dart';
-import 'package:pixez/main.dart';
 import 'package:pixez/models/illust.dart';
 import 'package:pixez/network/api_client.dart';
 import 'package:pixez/page/picture/illust_lighting_page.dart';
 import 'package:pixez/page/saucenao/sauce_nao_result.dart';
-import 'package:url_launcher/url_launcher_string.dart';
 
 enum _SauceNaoPhase { idle, loading, done, error }
 
@@ -185,13 +179,6 @@ class _SauceNaoModalState extends State<SauceNaoModal> {
       if (widget._initialPath != null) {
         path = await SauceNaoModal._pickSource(anchor ?? context);
       } else {
-        await _ensurePhotoPickerPreference();
-        if (!mounted) return;
-        final implementation = ImagePickerPlatform.instance;
-        if (implementation is ImagePickerAndroid) {
-          implementation.useAndroidPhotoPicker =
-              userSetting.imagePickerType == 1;
-        }
         path = (await ImagePicker().pickImage(
           source: ImageSource.gallery,
         ))?.path;
@@ -467,57 +454,6 @@ class _SauceNaoModalState extends State<SauceNaoModal> {
     return img.encodeJpg(newImage, quality: 75);
   }
 
-  Future<void> _ensurePhotoPickerPreference() async {
-    if (!Platform.isAndroid || !mounted) return;
-    final skipAlert = Prefer.getBool("photo_picker_type_selected") ?? false;
-    if (skipAlert) return;
-    await showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          contentPadding: EdgeInsets.only(top: 10.0, bottom: 10.0),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Observer(
-                builder: (context) {
-                  return SwitchListTile(
-                    secondary: Icon(Icons.photo_album),
-                    onChanged: (bool value) async {
-                      await userSetting.setImagePickerType(value ? 1 : 0);
-                    },
-                    title: InkWell(
-                      child: Text(I18n.of(context).photo_picker),
-                      onTap: () {
-                        launchUrlString(
-                          "https://developer.android.com/training/data-storage/shared/photopicker",
-                        );
-                      },
-                    ),
-                    subtitle: Text(I18n.of(context).photo_picker_subtitle),
-                    value: userSetting.imagePickerType == 1,
-                  );
-                },
-              ),
-              Divider(),
-              InkWell(
-                child: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Text(I18n.of(context).ok),
-                  ),
-                ),
-                onTap: () {
-                  Navigator.of(context).pop();
-                },
-              ),
-            ],
-          ),
-        );
-      },
-    );
-    await Prefer.setBool("photo_picker_type_selected", true);
-  }
 
   @override
   Widget build(BuildContext context) {

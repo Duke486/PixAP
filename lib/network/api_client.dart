@@ -21,7 +21,6 @@ import 'dart:core';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
-import 'package:device_info_plus/device_info_plus.dart';
 import 'package:dio/dio.dart';
 import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
 import 'package:dio_compatibility_layer/dio_compatibility_layer.dart';
@@ -79,16 +78,6 @@ class ApiClient {
       ),
     );
     httpClient.httpClientAdapter = ConversionLayerAdapter(compatibleClient);
-    if (Platform.isAndroid) {
-      try {
-        DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
-        AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
-        var headers = httpClient.options.headers;
-        headers['User-Agent'] =
-            "PixivAndroidApp/5.0.166 (Android ${androidInfo.version.release}; ${androidInfo.model})";
-        headers['App-OS-Version'] = "Android ${androidInfo.version.release}";
-      } catch (e) {}
-    }
     return httpClient;
   }
 
@@ -463,7 +452,7 @@ class ApiClient {
     return httpClient.get(
       "/v1/search/illust",
       queryParameters: notNullMap({
-        "filter": Platform.isAndroid ? "for_android" : "for_ios",
+        "filter": "for_ios",
         "merge_plain_keyword_results": true,
         "sort": sort,
         "search_ai_type": search_ai_type,

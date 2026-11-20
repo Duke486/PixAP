@@ -15,7 +15,6 @@
  */
 
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:flutter/widgets.dart';
 import 'package:mobx/mobx.dart';
@@ -23,7 +22,7 @@ import 'package:pixez/constants.dart';
 import 'package:pixez/er/sharer.dart';
 import 'package:pixez/models/export_tag_history_data.dart';
 import 'package:pixez/models/tags.dart';
-import 'package:pixez/saf_plugin.dart';
+import 'package:file_picker/file_picker.dart';
 
 part 'tag_history_store.g.dart';
 
@@ -73,7 +72,7 @@ abstract class _TagHistoryStoreBase with Store {
   String _tagKey(TagsPersist tag) => '${tag.name}\u0000${tag.type ?? 0}';
 
   Future<void> importData() async {
-    final result = await SAFPlugin.openFile();
+    final result = await (await FilePicker.pickFile())?.readAsBytes();
     if (result == null) return;
     final json = utf8.decode(result);
     final decoder = JsonDecoder();
@@ -101,13 +100,6 @@ abstract class _TagHistoryStoreBase with Store {
     }
     final exportData = ExportData(tagHisotry: tagsToExport);
     final uint8List = utf8.encode(jsonEncode(exportData));
-    if (Platform.isIOS) {
-      await Sharer.exportUint8List(context, uint8List, 'search_history.json');
-    } else {
-      final uriStr =
-          await SAFPlugin.createFile("search_history.json", "application/json");
-      if (uriStr == null) return;
-      await SAFPlugin.writeUri(uriStr, uint8List);
-    }
+    await Sharer.exportUint8List(context, uint8List, 'search_history.json');
   }
 }

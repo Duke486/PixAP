@@ -16,6 +16,7 @@
 
 import 'package:dio/dio.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:pixez/constants.dart';
 import 'package:pixez/i18n.dart';
 import 'package:pixez/page/about/last_release.dart';
 import 'package:url_launcher/url_launcher_string.dart';
@@ -40,13 +41,15 @@ class _UpdatePageState extends State<UpdatePage> {
   initData() async {
     try {
       Response response = await _dio.get(
-        'https://api.github.com/repos/Notsfsssf/pixez-flutter/releases/latest',
+        Constants.latestReleaseApi,
       );
       final result = LastRelease.fromJson(response.data);
+      if (!mounted) return;
       setState(() {
         lastRelease = result;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         error = e;
       });
@@ -76,12 +79,12 @@ class _UpdatePageState extends State<UpdatePage> {
                 ListTile(
                   title: Text(I18n.of(context).download_address),
                   subtitle: SelectableText(
-                    lastRelease!.assets?.first.browserDownloadUrl ?? '',
+                    Constants.latestReleaseUrl,
                   ),
                   onTap: () {
                     try {
                       launchUrlString(
-                        lastRelease!.assets?.first.browserDownloadUrl ?? '',
+                        Constants.latestReleaseUrl,
                       );
                     } catch (e) {}
                   },

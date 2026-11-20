@@ -29,17 +29,13 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:pixez/constants.dart';
 import 'package:pixez/er/fetcher.dart';
 import 'package:pixez/er/illust_cacher.dart';
-import 'package:pixez/fluent/fluentui.dart';
 import 'package:pixez/i18n.dart';
 import 'package:pixez/page/novel/history/novel_history_store.dart';
 import 'package:pixez/page/splash/splash_page.dart';
 import 'package:pixez/page/splash/splash_store.dart';
-import 'package:pixez/paths_plugin.dart';
-import 'package:pixez/single_instance_plugin.dart';
 import 'package:pixez/src/generated/i18n/app_localizations.dart';
 import 'package:pixez/store/account_store.dart';
 import 'package:pixez/store/book_tag_store.dart';
@@ -49,9 +45,7 @@ import 'package:pixez/store/save_store.dart';
 import 'package:pixez/store/tag_history_store.dart';
 import 'package:pixez/store/top_store.dart';
 import 'package:pixez/store/user_setting.dart';
-import 'package:pixez/win32_plugin.dart';
 import 'package:rhttp/rhttp.dart';
-import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import 'package:pixez/utils/tray_manager_helper.dart';
 
@@ -69,7 +63,7 @@ final SplashStore splashStore = SplashStore();
 final Fetcher fetcher = new Fetcher();
 final FullScreenStore fullScreenStore = FullScreenStore();
 
-main(List<String> args) async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   if (Platform.isIOS) await DemoMode.initialize();
   await Rhttp.init();
@@ -81,34 +75,13 @@ main(List<String> args) async {
     );
   });
 
-  if (Platform.isWindows || Platform.isLinux) {
-    // sqflite ffi init
-    sqfliteFfiInit();
-    databaseFactory = databaseFactoryFfi;
+  if (Platform.isMacOS) await TrayManagerHelper.instance.init();
 
-    final dbPath = await getApplicationSupportDirectory();
-    await Paths.setApplicationSupportDirectory(dbPath.path);
-    if (Platform.isWindows) {
-      await Win32.migrationAppData();
-    }
-    databaseFactory.setDatabasesPath(dbPath.path);
-
-    // 确保只有一个实例正在运行
-    // Android 和 iOS 应用本身就是单例程序，无需额外操作
-    SingleInstancePlugin.initialize();
-  }
-  await initFluent(args);
-  if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
-    await TrayManagerHelper.instance.init();
-  }
-
-  runApp(ProviderScope(child: MyApp(arguments: args)));
+  runApp(const ProviderScope(child: MyApp()));
 }
 
 class MyApp extends StatefulWidget {
-  final List<String> arguments;
-
-  const MyApp({super.key, required this.arguments});
+  const MyApp({super.key});
   @override
   _MyAppState createState() => _MyAppState();
 }
@@ -153,16 +126,11 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
     super.initState();
     if (Platform.isIOS) WidgetsBinding.instance.addObserver(this);
-    Future.delayed(Duration.zero, () {
-      SingleInstancePlugin.argsParser(widget.arguments);
-    });
   }
 
   @override
   Widget build(BuildContext context) {
-    return Constants.isFluent
-        ? buildFluentUI(context)
-        : _buildMaterial(context);
+    return _buildMaterial(context);
   }
 
   Widget _buildMaterial(BuildContext context) {
@@ -264,7 +232,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                     useMaterial3: true,
                     pageTransitionsTheme: const PageTransitionsTheme(
                       builders: {
-                        TargetPlatform.android: ZoomPageTransitionsBuilder(),
                         TargetPlatform.iOS: ArtworkPageTransitionsBuilder(),
                       },
                     ),
@@ -285,7 +252,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                     useMaterial3: true,
                     pageTransitionsTheme: const PageTransitionsTheme(
                       builders: {
-                        TargetPlatform.android: ZoomPageTransitionsBuilder(),
                         TargetPlatform.iOS: ArtworkPageTransitionsBuilder(),
                       },
                     ),

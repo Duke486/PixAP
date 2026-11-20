@@ -8,8 +8,6 @@ publish_to: none
 # followed by an optional build number separated by a +.
 # Both the version and the builder number may be overridden in flutter
 # build by specifying --build-name and --build-number, respectively.
-# In Android, build-name is used as versionName while build-number used as versionCode.
-# Read more about Android versioning at https://developer.android.com/studio/publish/versioning
 # In iOS, build-name is used as CFBundleShortVersionString while build-number used as CFBundleVersion.
 # Read more about iOS versioning at
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
@@ -27,10 +25,6 @@ dependencies:
   crypto: ^3.0.7
   path_provider: ^2.1.6
   shared_preferences: ^2.5.5
-  # 2.5.0 uses Pigeon JNI. R8 renames Kotlin coroutine classes in release
-  # builds and SharedPreferences.getAll throws NoSuchMethodError.
-  # https://github.com/flutter/flutter/issues/194649
-  shared_preferences_android: ">=2.4.28 <2.5.0"
   share_plus: ^13.3.1
   permission_handler: ^13.0.2
   archive: ^4.0.9
@@ -41,8 +35,6 @@ dependencies:
   flutter_mobx: ^2.2.1+1
   in_app_purchase: ^3.3.0
   flutter_widget_from_html: ^0.17.4
-  device_info_plus: ^13.3.0
-  flutter_displaymode: ^0.7.0
   receive_sharing_intent: ^1.9.0
   cached_network_image: ^4.0.4
   flutter_cache_manager: ^3.4.5
@@ -60,10 +52,7 @@ dependencies:
   easy_refresh: ^4.0.0
   sqflite: ^2.4.3
   dynamic_color: ^1.9.0
-  # Design Style
-  fluent_ui: ^4.15.1
   # Desktop Support
-  flutter_acrylic: ^1.1.4
   window_manager: ^0.5.1
   tray_manager: ^0.8.0
   rhttp:
@@ -77,8 +66,6 @@ dependencies:
   hooks_riverpod: ^3.0.3
   flutter_hooks: ^0.21.3+1
   webview_all: ^1.4.12
-  webview_all_linux: ^1.4.12
-  webview_all_windows: ^1.4.12
   # sqlite3: 3.1.6
   sqflite_common_ffi: ^2.4.2+1
   material_ui: ^1.7.0
@@ -89,7 +76,6 @@ dev_dependencies:
     sdk: flutter
   mobx_codegen: ^2.6.1
   json_serializable: ^6.8.0
-  msix: ^3.16.9
   analyzer: ^8.4.0
   build_runner: ^2.12.0
   riverpod_generator: ^4.0.0+1
@@ -140,21 +126,6 @@ flutter:
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/custom-fonts/#from-packages
   generate: true
-
-msix_config:
-  display_name: Pixez
-  publisher_display_name: Perol_Notsfsssf
-  identity_name: com.perol.pixez
-  logo_path: .\windows\runner\resources\ic_launcher-msstore.png
-  trim_logo: false
-  capabilities: internetClient, picturesLibrary
-  languages: en-us, ja-jp, ko-kr, zh-cn, zh-tw
-  protocol_activation: pixiv, pixez
-  app_uri_handler_hosts: i.pximg.net, pixiv.me, pixivision.net
-  execution_alias: pixez
-  install_certificate: false
-  store: false
-  publisher: CN=Notsfsssf, C=CN
 
 dependency_overrides:
   wakelock_plus:

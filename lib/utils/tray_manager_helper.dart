@@ -41,7 +41,7 @@ class TrayManagerHelper with WindowListener {
 
   /// 初始化托盘管理器与窗口监听
   Future<void> init() async {
-    if (!Platform.isWindows && !Platform.isMacOS && !Platform.isLinux) {
+    if (!Platform.isMacOS) {
       return;
     }
     if (_isInitialized) return;

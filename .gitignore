@@ -35,14 +35,6 @@
 /lib/generated/
 
 # Android related
-**/android/**/gradle-wrapper.jar
-**/android/.gradle
-**/android/captures/
-**/android/gradlew
-**/android/gradlew.bat
-**/android/local.properties
-**/android/key.properties
-**/android/**/GeneratedPluginRegistrant.java
 local.properties
 
 # iOS/XCode related
@@ -94,9 +86,6 @@ local.properties
 **/macos/Flutter/Flutter-Release.xcconfig
 
 # Windows related
-**/windows/flutter/ephemeral/
-**/windows/flutter/generated_plugin_registrant.*
-**/windows/flutter/generated_plugins.cmake
 
 # Rust (rhttp plugin) related
 **/rust/target/

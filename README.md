@@ -6,13 +6,13 @@
 
 ### 果味的 PixEz · 为 Apple 全面重新设计
 
-以 Apple 最新的界面风格重新设计的 pixiv 第三方客户端。原生液态玻璃（Liquid Glass）融入悬浮导航与工具栏，从首页画廊到作品详情、搜索和设置，整个浏览体验焕然一新。
+采用 Apple 最新界面风格的 pixiv 第三方客户端，支持 iPhone、iPad 和 Mac。原生液态玻璃（Liquid Glass）融入悬浮导航与工具栏，从首页画廊到作品详情、搜索和设置，整个浏览体验焕然一新。
 
 [下载 IPA](https://github.com/Duke486/PixAP/releases/latest) · [安装说明](#安装) · [问题反馈](https://github.com/Duke486/PixAP/issues)
 
 </div>
 
-> **原项目 [PixEz Flutter](https://github.com/Notsfsssf/pixez-flutter)** 由 Perol_Notsfsssf 发起。PixAP 由 Mark 在其基础上为 Apple 设备改造，沿用 pixiv 接入与客户端功能，重新设计界面和交互。感谢原作者与所有为 PixEz Flutter 编写代码、维护文档和翻译的贡献者。
+> **原项目 [PixEz Flutter](https://github.com/Notsfsssf/pixez-flutter)** 由 Perol_Notsfsssf 发起。PixAP 由 [Duke486](https://github.com/Duke486) 在其基础上为 Apple 设备改造，沿用 pixiv 接入与客户端功能，重新设计界面和交互。感谢原作者与所有为 PixEz Flutter 编写代码、维护文档和翻译的贡献者。
 
 ![iPad 首页的亮点推荐、插画画廊与液态玻璃侧栏](docs/screenshots/home.jpg)
 
@@ -67,7 +67,7 @@ dart run build_runner build
 flutter build ios --release --no-codesign
 ```
 
-Xcode 工程使用 [Flutter 构建脚本](ios/Flutter/build_with_xcode.sh)。Release 标签附有该 IPA 对应的源码。
+Xcode 工程使用 [Flutter 构建脚本](ios/Flutter/build_with_xcode.sh)。Release 标签附有该 IPA 对应的源码。Mac 版面向 macOS 12 及以上，使用自己的 Mac 签名配置后可在本机运行 `flutter build macos --release`。
 
 ## 源码来源、感谢与许可
 
@@ -93,6 +93,6 @@ PixAP 是独立维护的 PixEz Flutter 衍生项目，与 Apple、pixiv 及上�
   </tr>
 </table>
 
-[英文说明](.github/README_en.md) · [印尼语说明](.github/README_id.md) · [常见问题](.github/FAQ.md)
+[英文说明](https://github.com/Notsfsssf/pixez-flutter/blob/master/.github/README_en.md) · [印尼语说明](https://github.com/Notsfsssf/pixez-flutter/blob/master/.github/README_id.md) · [常见问题](https://github.com/Notsfsssf/pixez-flutter/blob/master/.github/FAQ.md)
 
 </details>

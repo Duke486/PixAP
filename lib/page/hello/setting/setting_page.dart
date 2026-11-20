@@ -68,7 +68,7 @@ class SettingPageState extends State<SettingPage> {
       Updater.latestVersion != userSetting.ignoreUpdateVersion;
 
   initMethod() async {
-    if (Constants.isGooglePlay || Platform.isIOS) return;
+    if (!Platform.isMacOS) return;
     if (Updater.result != Result.timeout) return;
     await Updater.check();
     if (mounted) setState(() {});

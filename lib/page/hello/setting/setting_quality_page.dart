@@ -24,7 +24,6 @@ import 'package:pixez/component/progressive_toolbar_blur.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:pixez/app_widget_plugin.dart';
-import 'package:pixez/constants.dart';
 import 'package:pixez/er/leader.dart';
 import 'package:pixez/er/prefer.dart';
 import 'package:pixez/er/updater.dart';
@@ -33,7 +32,6 @@ import 'package:pixez/main.dart';
 import 'package:pixez/page/hello/setting/copy_text_page.dart';
 import 'package:pixez/page/hello/setting/setting_cross_adapter_page.dart';
 import 'package:pixez/page/network/network_page.dart';
-import 'package:pixez/page/platform/platform_page.dart';
 import 'package:pixez/store/welcome_page_type.dart';
 import 'package:pixez/utils/haptic_util.dart';
 
@@ -112,21 +110,6 @@ class _SettingQualityPageState extends State<SettingQualityPage>
           return Container(
             child: ListView(
               children: [
-                if (Platform.isAndroid)
-                  ListTile(
-                    leading: Icon(Icons.android),
-                    trailing: const Icon(Icons.arrow_right),
-                    title: Text(I18n.of(context).platform_special_setting),
-                    subtitle: Text(
-                      "For Android",
-                      style: TextStyle(color: Colors.green),
-                    ),
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(builder: (context) => PlatformPage()),
-                      );
-                    },
-                  ),
                 ListTile(
                   leading: const Icon(Icons.network_check),
                   title: Text(I18n.of(context).network),
@@ -345,7 +328,7 @@ class _SettingQualityPageState extends State<SettingQualityPage>
                     userSetting.setSwipeChangeArtwork(value);
                   },
                 ),
-                if (Platform.isAndroid || Platform.isIOS)
+                if (Platform.isIOS)
                   SwitchListTile(
                     value: userSetting.hapticFeedback,
                     title: Text(I18n.of(context).haptic_feedback),
@@ -354,7 +337,7 @@ class _SettingQualityPageState extends State<SettingQualityPage>
                       userSetting.setHapticFeedback(value);
                     },
                   ),
-                if (Platform.isAndroid || Platform.isIOS)
+                if (Platform.isIOS)
                   SwitchListTile(
                     value: userSetting.nsfwMask,
                     title: Text(
@@ -392,7 +375,7 @@ class _SettingQualityPageState extends State<SettingQualityPage>
                     userSetting.setFeedAIBadge(value);
                   },
                 ),
-                if (!Constants.isGooglePlay && !Platform.isIOS)
+                if (Platform.isMacOS)
                   SwitchListTile(
                     value: Updater.result == Result.yes &&
                         Updater.latestVersion != null &&

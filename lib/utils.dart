@@ -16,7 +16,7 @@ void Function()? initializeScrollController(
   ScrollController controller,
   Future Function() next,
 ) {
-  if (!Platform.isWindows && !Platform.isMacOS && !Platform.isLinux)
+  if (!Platform.isMacOS)
     return null;
 
   final listener = () async {

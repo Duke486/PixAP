@@ -1,10 +1,7 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
 import 'package:json_annotation/json_annotation.dart';
-import 'package:pixez/constants.dart';
 
 part 'board_info.g.dart';
 
@@ -30,27 +27,9 @@ class BoardInfo {
   
   static List<BoardInfo> boardList = [];
 
-  static String path() {
-    if (kDebugMode) {
-      return "android.json";
-    }
-    if (Platform.isAndroid) {
-      if (Constants.isGooglePlay) {
-        return "android_play.json";
-      }
-      return "android.json";
-    } else if (Platform.isIOS) {
-      return "ios.json";
-    } else if (Platform.isWindows) {
-      return "windows.json";
-    }
-    return "";
-  }
-
   static Future<List<BoardInfo>> load() async {
-    print(path());
     final request = await Dio().get(
-        'https://raw.githubusercontent.com/Notsfsssf/pixez-flutter/refs/heads/master/.github/board/${path()}');
+        'https://raw.githubusercontent.com/Notsfsssf/pixez-flutter/refs/heads/master/.github/board/ios.json');
     final list = (jsonDecode(request.data) as List)
         .map((e) => BoardInfo.fromJson(e))
         .toList();

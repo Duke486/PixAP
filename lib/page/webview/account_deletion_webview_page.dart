@@ -27,7 +27,6 @@ class _AccountDeletionPageState extends State<AccountDeletionPage> {
 
   @override
   void dispose() {
-    disposeWebViewController(_controller);
     super.dispose();
   }
 

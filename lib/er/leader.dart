@@ -19,13 +19,10 @@ import 'dart:io';
 import 'package:bot_toast/bot_toast.dart';
 import 'package:dio/dio.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:pixez/constants.dart';
-import 'package:pixez/er/fluent_leader.dart';
 import 'package:pixez/er/lprinter.dart';
 import 'package:pixez/main.dart';
 import 'package:pixez/models/account.dart';
 import 'package:pixez/network/oauth_client.dart';
-import 'package:pixez/page/hello/android_hello_page.dart';
 import 'package:pixez/page/hello/hello_page.dart';
 import 'package:pixez/page/hello/setting/save_eval_page.dart';
 import 'package:pixez/page/novel/series/novel_series_page.dart';
@@ -40,14 +37,9 @@ import 'package:url_launcher/url_launcher_string.dart';
 
 class Leader {
   static Future<void> pushUntilHome(BuildContext context) async {
-    if (Constants.isFluent) {
-      FluentLeader.pushUntilHome(context);
-      return;
-    }
     Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
       MaterialPageRoute(
-        builder: (context) =>
-            Platform.isAndroid ? AndroidHelloPage() : HelloPage(),
+        builder: (context) => HelloPage(),
       ),
       (route) => false,
     );
@@ -58,10 +50,6 @@ class Leader {
   }
 
   static Future<bool> pushWithUri(BuildContext context, Uri link) async {
-    if (Constants.isFluent) {
-      FluentLeader.pushWithUri(context, link);
-      return false;
-    }
     // https://www.pixiv.net/novel/series/$id
     if (link.path.contains("novel") && link.path.contains("series")) {
       final id = int.tryParse(link.pathSegments.last);
@@ -166,7 +154,7 @@ class Leader {
           await accountProvider.insert(accountPersist);
           await accountStore.fetch();
           BotToast.showText(text: "Login Success");
-          if (context.mounted && (Platform.isIOS || Platform.isLinux)) {
+          if (context.mounted && Platform.isIOS) {
             pushUntilHome(context);
           }
           return true;
@@ -350,14 +338,6 @@ class Leader {
     Widget? icon,
     Widget? title,
   }) {
-    if (Constants.isFluent) {
-      return FluentLeader.pushWithScaffold(
-        context,
-        widget,
-        icon: icon,
-        title: title,
-      );
-    }
     return Navigator.of(
       context,
     ).push(MaterialPageRoute(builder: (context) => Scaffold(body: widget)));
@@ -370,15 +350,6 @@ class Leader {
     Widget? title,
     bool forceSkipWrap = false,
   }) {
-    if (Constants.isFluent) {
-      return FluentLeader.push(
-        context,
-        widget,
-        icon: icon,
-        title: title,
-        forceSkipWrap: forceSkipWrap,
-      );
-    }
     return Navigator.of(
       context,
     ).push(MaterialPageRoute(builder: (context) => Scaffold(body: widget)));

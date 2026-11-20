@@ -28,7 +28,6 @@ import 'package:pixez/main.dart';
 import 'package:pixez/models/ugoira_metadata_response.dart';
 import 'package:pixez/network/api_client.dart';
 import 'package:pixez/document_plugin.dart';
-import 'package:pixez/saf_plugin.dart';
 import 'package:pixez/models/illust.dart';
 import 'package:pixez/page/picture/illust_store.dart';
 import 'package:pixez/store/save_store.dart';
@@ -68,21 +67,6 @@ abstract class _UgoiraStoreBase with Store {
         final data = fullPathFile.readAsBytesSync();
         String zipFileName = await buildSaveFileName(illusts, 0, ".zip");
         zipFileName = applySingleFolder(illusts, zipFileName);
-        if (Platform.isAndroid) {
-          try {
-            String? uriString = await SAFPlugin.createFile(
-              zipFileName,
-              "application/zip",
-            );
-            uriString!;
-            await SAFPlugin.writeUri(uriString, data);
-            BotToast.showText(text: "export success");
-            return;
-          } catch (e) {
-            BotToast.showText(text: "export cancelled");
-            return;
-          }
-        }
         final success = await DocumentPlugin.save(data, zipFileName);
         if (success == true) {
           BotToast.showText(text: "export success");

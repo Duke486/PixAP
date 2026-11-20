@@ -258,9 +258,7 @@ abstract class _SaveStoreBase with Store {
   late ObservableStream<SaveStream> saveStream;
 
   Future<String> findLocalPath() async {
-    final directory = Platform.isAndroid
-        ? (await getTemporaryDirectory()).path
-        : (await getApplicationDocumentsDirectory()).path + '/pixez';
+    final directory = (await getApplicationDocumentsDirectory()).path + '/pixez';
     return directory;
   }
 
@@ -300,18 +298,6 @@ abstract class _SaveStoreBase with Store {
     int index, {
     bool redo = false,
   }) async {
-    if (Platform.isAndroid || Platform.isWindows || Platform.isLinux) {
-      try {
-        String targetFileName = applySingleFolder(illusts, fileName);
-        final isExist = await DocumentPlugin.exist(targetFileName);
-        if (isExist! && !redo) {
-          streamController.add(
-            SaveStream(SaveState.ALREADY, illusts, index: index),
-          );
-          return;
-        }
-      } catch (e) {}
-    }
     streamController.add(SaveStream(SaveState.JOIN, illusts, index: index));
     _joinQueue(url, illusts, fileName);
   }
@@ -323,10 +309,7 @@ abstract class _SaveStoreBase with Store {
     int sanityLevel,
     String fileName,
   ) async {
-    if (Platform.isAndroid ||
-        Platform.isIOS ||
-        Platform.isWindows ||
-        Platform.isLinux) {
+    if (Platform.isIOS) {
       try {
         String overFileName = fileName;
         if (userSetting.singleFolder) {

@@ -18,7 +18,6 @@ import 'dart:convert';
 import 'dart:core';
 import 'dart:io';
 import 'package:crypto/crypto.dart';
-import 'package:device_info_plus/device_info_plus.dart';
 import 'package:dio/dio.dart';
 import 'package:dio_compatibility_layer/dio_compatibility_layer.dart';
 import 'package:flutter/foundation.dart';
@@ -61,16 +60,6 @@ class OAuthClient {
       ),
     );
     httpClient.httpClientAdapter = ConversionLayerAdapter(compatibleClient);
-    if (Platform.isAndroid) {
-      try {
-        DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
-        AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
-        var headers = httpClient.options.headers;
-        headers['User-Agent'] =
-            "PixivAndroidApp/5.0.166 (Android ${androidInfo.version.release}; ${androidInfo.model})";
-        headers['App-OS-Version'] = "Android ${androidInfo.version.release}";
-      } catch (e) {}
-    }
     return httpClient;
   }
 

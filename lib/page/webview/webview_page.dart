@@ -1,12 +1,11 @@
 import 'dart:io';
 
+import 'package:url_launcher/url_launcher_string.dart';
 import 'package:bot_toast/bot_toast.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:pixez/utils/webview.dart';
-import 'package:pixez/custom_tab_plugin.dart';
 import 'package:pixez/er/leader.dart';
 import 'package:pixez/main.dart';
-import 'package:pixez/weiss_plugin.dart';
 
 class WebViewPage extends StatefulWidget {
   final String url;
@@ -86,8 +85,6 @@ javascript:(function() {
 
   @override
   void dispose() {
-    disposeWebViewController(_webViewController);
-    if (Platform.isAndroid) WeissPlugin.stop();
     super.dispose();
   }
 
@@ -101,7 +98,7 @@ javascript:(function() {
             icon: Icon(Icons.open_in_browser),
             onPressed: () {
               try {
-                CustomTabPlugin.launch(widget.url);
+                launchUrlString(widget.url);
               } catch (e) {
                 BotToast.showText(text: e.toString());
               }

@@ -41,7 +41,6 @@ class _NovelWebViewerState extends State<NovelWebViewer> {
 
   @override
   void dispose() {
-    disposeWebViewController(_controller);
     super.dispose();
   }
 

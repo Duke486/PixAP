@@ -27,7 +27,7 @@ class HapticUtil {
   /// 是否支持触感反馈且用户设置开启
   static bool get _isEnabled {
     if (kIsWeb) return false;
-    if (!Platform.isAndroid && !Platform.isIOS) return false;
+    if (!Platform.isIOS) return false;
     try {
       return userSetting.hapticFeedback;
     } catch (_) {

@@ -13,14 +13,13 @@
  *  this program. If not, see <http://www.gnu.org/licenses/>.
  */
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:mobx/mobx.dart';
 import 'package:pixez/er/sharer.dart';
 import 'package:pixez/models/novel_persist.dart';
 import 'package:pixez/models/novel_recom_response.dart';
-import 'package:pixez/saf_plugin.dart';
+import 'package:file_picker/file_picker.dart';
 
 part 'novel_history_store.g.dart';
 
@@ -65,7 +64,7 @@ abstract class _NovelHistoryStoreBase with Store {
   }
 
   Future<void> importData() async {
-    final result = await SAFPlugin.openFile();
+    final result = await (await FilePicker.pickFile())?.readAsBytes();
     if (result == null) return;
     final json = utf8.decode(result);
     final decoder = JsonDecoder();
@@ -87,13 +86,6 @@ abstract class _NovelHistoryStoreBase with Store {
     await novelPersistProvider.open();
     final exportData = await novelPersistProvider.getAllAccount();
     final uint8List = utf8.encode(jsonEncode(exportData));
-    if (Platform.isIOS) {
-      await Sharer.exportUint8List(context, uint8List, "novelpersist.json");
-    } else {
-      final uriStr =
-          await SAFPlugin.createFile("novelpersist.json", "application/json");
-      if (uriStr == null) return;
-      await SAFPlugin.writeUri(uriStr, uint8List);
-    }
+    await Sharer.exportUint8List(context, uint8List, "novelpersist.json");
   }
 }

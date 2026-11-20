@@ -19,9 +19,7 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:material_ui/material_ui.dart';
-import 'package:flutter_displaymode/flutter_displaymode.dart';
 import 'package:mobx/mobx.dart';
-import 'package:pixez/constants.dart';
 import 'package:pixez/component/picker/utils.dart';
 import 'package:pixez/component/pixiv_image.dart';
 import 'package:pixez/er/hoster.dart';
@@ -32,7 +30,6 @@ import 'package:pixez/network/api_client.dart';
 import 'package:pixez/network/network_mode.dart';
 import 'package:pixez/network/oauth_client.dart';
 import 'package:pixez/page/about/languages.dart';
-import 'package:pixez/secure_plugin.dart';
 import 'package:pixez/store/welcome_page_type.dart';
 import 'package:pixez/utils/tray_manager_helper.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -89,7 +86,6 @@ abstract class _UserSetting with Store {
   static const String H_CROSS_ADAPT_KEY = "h_cross_adapt";
   static const String H_CROSS_ADAPT_WIDTH_KEY = "h_cross_adapt_width";
   static const String DEFAULT_PRIVATE_LIKE_KEY = "default_private_like";
-  static const String IMAGE_PICKER_TYPE_KEY = "image_picker_type_renew";
   static const String LONG_PRESS_SAVE_CONFIRM_KEY = "long_press_save_confirm";
   static const String USE_DYNAMIC_COLOR_KEY = "use_dynamic_color";
   static const String SEED_COLOR_KEY = "seed_color";
@@ -133,7 +129,6 @@ abstract class _UserSetting with Store {
   int saveMode = 0;
   @observable
   bool isAMOLED = false;
-  // fluent ui
   @observable
   bool isTopMode = false;
   @observable
@@ -156,8 +151,6 @@ abstract class _UserSetting with Store {
   int crossCount = 2;
   @observable
   int hCrossCount = 4;
-  @observable
-  int? displayMode;
   @observable
   NetworkMode networkMode = NetworkMode.ech;
   @observable
@@ -202,8 +195,6 @@ abstract class _UserSetting with Store {
   bool defaultPrivateLike = false;
   @observable
   bool longPressSaveConfirm = false;
-  @observable
-  int imagePickerType = 0;
   @observable
   int themeInitState = 0;
   @observable
@@ -425,15 +416,6 @@ abstract class _UserSetting with Store {
     return WelcomePagePlatform.material.indexOf(welcomePageType);
   }
 
-  List<WelcomePageType> get fluentWelcomePages => fluentWelcomePageTypes;
-
-  WelcomePageType get fluentWelcomePageType =>
-      welcomePageType.normalizeFor(WelcomePagePlatform.fluent);
-
-  int get fluentWelcomePageIndex {
-    return WelcomePagePlatform.fluent.indexOf(welcomePageType);
-  }
-
   @action
   askInit() async {
     prefs = await Prefer.getInstance();
@@ -471,7 +453,7 @@ abstract class _UserSetting with Store {
     apiClient.httpClient.options.headers[HttpHeaders.acceptLanguageHeader] =
         ApiClient.Accept_Language;
     locale = iSupportedLocales[languageNum];
-    if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
+    if (Platform.isMacOS) {
       TrayManagerHelper.instance.updateMenuLabels();
     }
     crossAdapt = prefs.getBool(CROSS_ADAPT_KEY) ?? false;
@@ -549,9 +531,6 @@ abstract class _UserSetting with Store {
   }
 
   WelcomePageLegacyLayout _legacyWelcomePageLayout() {
-    if (Constants.isFluent) {
-      return WelcomePageLegacyLayout.fluent;
-    }
     if (Platform.isIOS) {
       final hasMigrated = prefs.getBool(WELCOME_PAGE_NUM_IOS_MIGRATION_KEY);
       if (!(hasMigrated ?? false)) {
@@ -567,7 +546,6 @@ abstract class _UserSetting with Store {
     zoomQuality = prefs.getInt(ZOOM_QUALITY_KEY) ?? 0;
     feedPreviewQuality = prefs.getInt(FEED_PREVIEW_QUALITY) ?? 0;
     singleFolder = prefs.getBool(SINGLE_FOLDER_KEY) ?? false;
-    displayMode = prefs.getInt('display_mode');
     hIsNotAllow = prefs.getBool('h_is_not_allow') ?? false;
     pictureQuality = prefs.getInt(PICTURE_QUALITY_KEY) ?? 0;
     mangaQuality = prefs.getInt(MANGA_QUALITY_KEY) ?? 0;
@@ -595,7 +573,6 @@ abstract class _UserSetting with Store {
     nameEval = prefs.getString(NAME_EVAL_KEY);
     defaultPrivateLike = prefs.getBool(DEFAULT_PRIVATE_LIKE_KEY) ?? false;
     longPressSaveConfirm = prefs.getBool(LONG_PRESS_SAVE_CONFIRM_KEY) ?? false;
-    imagePickerType = prefs.getInt(IMAGE_PICKER_TYPE_KEY) ?? 0;
     swipeChangeArtwork = prefs.getBool(SWIPE_CHANGE_ARTWORK_KEY) ?? true;
     useSaunceNaoWebview = prefs.getBool(USE_SAUNCE_NAO_WEBVIEW) ?? false;
     dragStartX = prefs.getDouble(DRAG_START_X_KEY) ?? 0;
@@ -605,15 +582,6 @@ abstract class _UserSetting with Store {
     illustDetailSaveSkipLongPress =
         prefs.getBool(ILLUST_DETAIL_SAVE_SKIP_LONG_PRESS_KEY) ?? false;
     minimizeOnExit = prefs.getBool(MINIMIZE_ON_EXIT_KEY) ?? true;
-    if (Platform.isAndroid) {
-      try {
-        await SecurePlugin.configSecureWindow(nsfwMask);
-        var modeList = await FlutterDisplayMode.supported;
-        if (displayMode != null && modeList.length > displayMode!) {
-          await FlutterDisplayMode.setPreferredMode(modeList[displayMode!]);
-        }
-      } catch (e) {}
-    }
     format = prefs.getString(SAVE_FORMAT_KEY);
     if (format == null || format!.isEmpty) format = intialFormat;
   }
@@ -634,16 +602,6 @@ abstract class _UserSetting with Store {
   setDragStartX(double value) async {
     dragStartX = value;
     prefs.setDouble(DRAG_START_X_KEY, value);
-  }
-
-  @action
-  setImagePickerType(int value) async {
-    await prefs.setInt(IMAGE_PICKER_TYPE_KEY, value);
-    imagePickerType = value;
-  }
-
-  bool imagePickerHasChoose() {
-    return prefs.getInt(IMAGE_PICKER_TYPE_KEY) != null;
   }
 
   @action
@@ -689,11 +647,6 @@ abstract class _UserSetting with Store {
   }
 
   @action
-  Future<void> setFluentWelcomePageType(WelcomePageType value) async {
-    await setWelcomePageType(value.normalizeFor(WelcomePagePlatform.fluent));
-  }
-
-  @action
   setHIsNotAllow(bool value) async {
     await prefs.setBool('h_is_not_allow', value);
     hIsNotAllow = value;
@@ -722,12 +675,6 @@ abstract class _UserSetting with Store {
   }
 
   @action
-  setDisplayMode(int value) async {
-    await prefs.setInt('display_mode', value);
-    displayMode = value;
-  }
-
-  @action
   Future<void> setSingleFolder(bool value) async {
     await prefs.setBool(SINGLE_FOLDER_KEY, value);
     singleFolder = value;
@@ -745,7 +692,7 @@ abstract class _UserSetting with Store {
     apiClient.httpClient.options.headers[HttpHeaders.acceptLanguageHeader] =
         ApiClient.Accept_Language;
     locale = iSupportedLocales[languageNum];
-    if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
+    if (Platform.isMacOS) {
       TrayManagerHelper.instance.updateMenuLabels();
     }
   }
@@ -772,7 +719,6 @@ abstract class _UserSetting with Store {
   Future<void> changeNsfwMask(bool value) async {
     await prefs.setBool(NSFW_MASK_KEY, value);
     nsfwMask = value;
-    await SecurePlugin.configSecureWindow(value);
   }
 
   @action

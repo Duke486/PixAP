@@ -14,7 +14,6 @@
  *
  */
 
-import 'dart:io';
 
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:material_ui/material_ui.dart';
@@ -38,7 +37,7 @@ class AboutPage extends StatelessWidget {
       body: AboutContent(
         newVersion: newVersion ?? false,
         onCheckUpdates:
-            !Constants.isGooglePlay && (Platform.isAndroid || kDebugMode)
+            kDebugMode
             ? () => Navigator.of(
                 context,
               ).push(MaterialPageRoute(builder: (_) => UpdatePage()))
@@ -58,7 +57,7 @@ class AboutContent extends StatelessWidget {
   final bool newVersion;
   final VoidCallback? onCheckUpdates;
 
-  static final _repository = Uri.https('github.com', '/Duke486/PixAP');
+  static final _repository = Uri.https('github.com', '/${Constants.repositoryPath}');
   static final _upstream = Uri.https('github.com', '/Notsfsssf/pixez-flutter');
 
   @override
@@ -102,7 +101,6 @@ class AboutContent extends StatelessWidget {
             contentPadding: EdgeInsets.zero,
             leading: const Icon(Icons.update),
             title: Text(strings.check_for_updates),
-            subtitle: Text(strings.about_original_project),
             trailing: newVersion ? NewVersionChip() : null,
             onTap: onCheckUpdates,
           ),

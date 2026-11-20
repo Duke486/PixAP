@@ -14,14 +14,12 @@
  *
  */
 
-import 'dart:io';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
 import 'package:pixez/component/picker/utils.dart';
 import 'package:pixez/er/leader.dart';
 import 'package:pixez/er/lprinter.dart';
-import 'package:pixez/supportor_plugin.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -38,7 +36,6 @@ class _SelectableHtmlState extends State<SelectableHtml> {
   @override
   void initState() {
     super.initState();
-    initMethod();
   }
 
   @override
@@ -75,13 +72,5 @@ class _SelectableHtmlState extends State<SelectableHtml> {
     );
   }
 
-  bool supportTranslate = false;
 
-  Future<void> initMethod() async {
-    if (!Platform.isAndroid) return;
-    bool results = await SupportorPlugin.processText();
-    setState(() {
-      supportTranslate = results;
-    });
-  }
 }

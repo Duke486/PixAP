@@ -15,11 +15,9 @@
  */
 
 import 'dart:convert';
-import 'dart:io';
 
-import 'package:fluent_ui/fluent_ui.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:mobx/mobx.dart';
-import 'package:pixez/er/lprinter.dart';
 import 'package:pixez/er/prefer.dart';
 import 'package:pixez/er/sharer.dart';
 import 'package:pixez/models/ban_comment_persist.dart';
@@ -27,7 +25,7 @@ import 'package:pixez/models/ban_illust_id.dart';
 import 'package:pixez/models/ban_tag.dart';
 import 'package:pixez/models/ban_user_id.dart';
 import 'package:pixez/models/comment_response.dart';
-import 'package:pixez/saf_plugin.dart';
+import 'package:file_picker/file_picker.dart';
 
 part 'mute_store.g.dart';
 
@@ -169,22 +167,12 @@ abstract class _MuteStoreBase with Store {
     };
     final exportJson = jsonEncode(entity);
     final uint8List = utf8.encode(exportJson);
-    if (Platform.isIOS) {
-      await Sharer.exportUint8List(context, uint8List,
-          "pixez_mute_${DateTime.now().toIso8601String()}.json");
-    } else {
-      final uri = await SAFPlugin.createFile(
-          "pixez_mute_${DateTime.now().toIso8601String()}.json",
-          "application/json");
-      LPrinter.d("exportJson:$exportJson");
-      if (uri != null) {
-        await SAFPlugin.writeUri(uri, uint8List);
-      }
-    }
+    await Sharer.exportUint8List(context, uint8List,
+        "pixez_mute_${DateTime.now().toIso8601String()}.json");
   }
 
   importFile() async {
-    final uri = await SAFPlugin.openFile();
+    final uri = await (await FilePicker.pickFile())?.readAsBytes();
     if (uri != null) {
       final data = utf8.decode(uri);
       final entity = jsonDecode(data);

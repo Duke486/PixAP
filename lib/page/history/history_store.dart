@@ -1,13 +1,12 @@
 import 'dart:convert';
-import 'dart:io';
 
-import 'package:fluent_ui/fluent_ui.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:pixez/er/sharer.dart';
 import 'package:pixez/models/illust.dart';
 import 'package:pixez/models/illust_persist.dart';
-import 'package:pixez/saf_plugin.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'history_store.freezed.dart';
@@ -82,7 +81,7 @@ class History extends Notifier<HistoryState> {
   }
 
   Future<void> importData() async {
-    final result = await SAFPlugin.openFile();
+    final result = await (await FilePicker.pickFile())?.readAsBytes();
     if (result == null) return;
     final json = utf8.decode(result);
     final decoder = JsonDecoder();
@@ -105,15 +104,6 @@ class History extends Notifier<HistoryState> {
     await illustPersistProvider.open();
     final exportData = await illustPersistProvider.getAllAccount();
     final uint8List = utf8.encode(jsonEncode(exportData));
-    if (Platform.isIOS) {
-      await Sharer.exportUint8List(context, uint8List, "illustpersist.json");
-    } else {
-      final uriStr = await SAFPlugin.createFile(
-        "illustpersist.json",
-        "application/json",
-      );
-      if (uriStr == null) return;
-      await SAFPlugin.writeUri(uriStr, uint8List);
-    }
+    await Sharer.exportUint8List(context, uint8List, "illustpersist.json");
   }
 }

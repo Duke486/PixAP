@@ -1,13 +1,13 @@
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:url_launcher/url_launcher_string.dart';
 import 'package:bot_toast/bot_toast.dart';
 import 'package:dio/dio.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:pixez/utils/webview.dart';
 import 'package:image/image.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:pixez/custom_tab_plugin.dart';
 import 'package:pixez/er/leader.dart';
 
 class SauncenaoWebview extends StatefulWidget {
@@ -109,7 +109,6 @@ class _SauncenaoWebviewState extends State<SauncenaoWebview> {
 
   @override
   void dispose() {
-    disposeWebViewController(_webViewController);
     super.dispose();
   }
 
@@ -123,7 +122,7 @@ class _SauncenaoWebviewState extends State<SauncenaoWebview> {
             icon: Icon(Icons.open_in_browser),
             onPressed: () {
               try {
-                CustomTabPlugin.launch(_url);
+                launchUrlString(_url);
               } catch (e) {
                 BotToast.showText(text: e.toString());
               }

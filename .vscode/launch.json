@@ -20,12 +20,6 @@
       "request": "launch",
       "type": "dart",
       "flutterMode": "profile"
-    },
-    {
-      "name": "(Windows) 附加",
-      "type": "cppvsdbg",
-      "request": "attach",
-      "processId": "${command:pickProcess}"
     }
   ]
 }

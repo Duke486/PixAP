@@ -15,21 +15,16 @@
  */
 
 import 'package:pixez/component/ipad_surface.dart';
-import 'dart:convert';
-import 'dart:io';
 
-import 'package:bot_toast/bot_toast.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:mobx/mobx.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:pixez/component/painter_avatar.dart';
 import 'package:pixez/component/pixiv_image.dart';
 import 'package:pixez/component/selectable_html.dart';
 import 'package:pixez/er/leader.dart';
 import 'package:pixez/er/lprinter.dart';
-import 'package:pixez/exts.dart';
 import 'package:pixez/i18n.dart';
 import 'package:pixez/main.dart';
 import 'package:pixez/models/ban_tag.dart';
@@ -42,10 +37,7 @@ import 'package:pixez/page/novel/series/novel_series_page.dart';
 import 'package:pixez/page/novel/user/novel_users_page.dart';
 import 'package:pixez/page/novel/viewer/image_text.dart';
 import 'package:pixez/page/novel/viewer/novel_store.dart';
-import 'package:pixez/saf_plugin.dart';
-import 'package:pixez/supportor_plugin.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:path/path.dart' as Path;
 
 class NovelViewerPage extends StatefulWidget {
   final int id;
@@ -63,19 +55,8 @@ class _NovelViewerPageState extends State<NovelViewerPage> {
   late NovelStore _novelStore;
   ReactionDisposer? _offsetDisposer;
   double _localOffset = 0.0;
-  bool supportTranslate = false;
-  String _selectedText = "";
   NovelSpansGenerator novelSpansGenerator = NovelSpansGenerator();
 
-  Future<void> initMethod() async {
-    if (!Platform.isAndroid) return;
-    bool results = await SupportorPlugin.processText();
-    if (mounted) {
-      setState(() {
-        supportTranslate = results;
-      });
-    }
-  }
 
   @override
   void initState() {
@@ -86,7 +67,6 @@ class _NovelViewerPageState extends State<NovelViewerPage> {
     });
     _novelStore.fetch();
     super.initState();
-    initMethod();
   }
 
   @override
@@ -257,9 +237,6 @@ class _NovelViewerPageState extends State<NovelViewerPage> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
       child: SelectionArea(
-        onSelectionChanged: (value) {
-          _selectedText = value?.plainText ?? "";
-        },
         contextMenuBuilder: (context, editableTextState) {
           return _buildSelectionMenu(editableTextState, context);
         },
@@ -377,9 +354,6 @@ class _NovelViewerPageState extends State<NovelViewerPage> {
               child: Padding(
                 padding: const EdgeInsets.all(8.0),
                 child: SelectionArea(
-                  onSelectionChanged: (value) {
-                    _selectedText = value?.plainText ?? "";
-                  },
                   contextMenuBuilder: (context, editableTextState) {
                     return _buildSelectionMenu(editableTextState, context);
                   },
@@ -413,29 +387,6 @@ class _NovelViewerPageState extends State<NovelViewerPage> {
   ) {
     final List<ContextMenuButtonItem> buttonItems =
         editableTextState.contextMenuButtonItems;
-    if (supportTranslate) {
-      buttonItems.insert(
-        buttonItems.length,
-        ContextMenuButtonItem(
-          label: I18n.of(context).translate,
-          onPressed: () async {
-            final selectionText = _selectedText;
-            if (Platform.isIOS) {
-              final box = context.findRenderObject() as RenderBox?;
-              final pos = box != null
-                  ? box.localToGlobal(Offset.zero) & box.size
-                  : null;
-              SharePlus.instance.share(
-                ShareParams(text: selectionText, sharePositionOrigin: pos),
-              );
-              return;
-            }
-            await SupportorPlugin.start(selectionText);
-            ContextMenuController.removeAny();
-          },
-        ),
-      );
-    }
     return AdaptiveTextSelectionToolbar.buttonItems(
       anchors: editableTextState.contextMenuAnchors,
       buttonItems: buttonItems,
@@ -647,14 +598,6 @@ class _NovelViewerPageState extends State<NovelViewerPage> {
               buildListTile(
                 _novelStore.novelTextResponse!.seriesNavigation?.nextNovel,
               ),
-              if (Platform.isAndroid)
-                ListTile(
-                  title: Text(I18n.of(context).export),
-                  leading: Icon(Icons.folder_zip),
-                  onTap: () {
-                    _export();
-                  },
-                ),
               ListTile(
                 title: Text(I18n.of(context).setting),
                 leading: Icon(Icons.settings),
@@ -714,73 +657,4 @@ class _NovelViewerPageState extends State<NovelViewerPage> {
     );
   }
 
-  void _export() async {
-    if (_novelStore.novelTextResponse == null) return;
-    if (Platform.isAndroid) {
-      // final path = await getExternalStorageDirectory();
-      // if (path == null) return;
-      // final dirPath = Path.join(path.path, "novel_export");
-      // final dir = Directory(dirPath);
-      // if (!dir.existsSync()) {
-      //   dir.createSync(recursive: true);
-      // }
-      // final allPath = Path.join(dirPath, "All");
-      // final allDir = Directory(allPath);
-      // if (!allDir.existsSync()) {
-      //   allDir.createSync(recursive: true);
-      // }
-      // final novelDirPath =
-      //     Path.join(dirPath, _novelStore.novel!.title.trim().toLegal());
-      // final novelDir = Directory(novelDirPath);
-      // if (!novelDir.existsSync()) {
-      //   novelDir.createSync(recursive: true);
-      // }
-      // final fileInAllPath = Path.join(
-      //     allPath, "${_novelStore.novel!.title.trim().toLegal()}.txt");
-      // final filePath = Path.join(novelDirPath, "${_novelStore.novel!.id}.txt");
-      // final resultFile = File(filePath);
-      // final data = _novelStore.novelTextResponse!.text;
-      // resultFile.writeAsStringSync(data);
-      // File(fileInAllPath).writeAsStringSync(data);
-      // BotToast.showText(text: "export ${filePath}");
-      final data = _novelStore.novelTextResponse!.text;
-      final uri = await SAFPlugin.createFile(
-        "${_novelStore.novel!.title.trim().toLegal()}.txt",
-        "application/txt",
-      );
-      await SAFPlugin.writeUri(uri!, utf8.encode(data));
-      BotToast.showText(text: "export success");
-    } else if (Platform.isIOS) {
-      final path = await getApplicationDocumentsDirectory();
-      final dirPath = Path.join(path.path, "novel_export");
-      final dir = Directory(dirPath);
-      if (!dir.existsSync()) {
-        dir.createSync(recursive: true);
-      }
-      final allPath = Path.join(dirPath, "All");
-      final allDir = Directory(allPath);
-      if (!allDir.existsSync()) {
-        allDir.createSync(recursive: true);
-      }
-      final novelDirPath = Path.join(
-        dirPath,
-        _novelStore.novel!.title.trim().toLegal(),
-      );
-      final novelDir = Directory(novelDirPath);
-      if (!novelDir.existsSync()) {
-        novelDir.createSync(recursive: true);
-      }
-      final fileInAllPath = Path.join(
-        allPath,
-        "${_novelStore.novel!.title.trim().toLegal()}.txt",
-      );
-      final filePath = Path.join(novelDirPath, "${_novelStore.novel!.id}.txt");
-      final resultFile = File(filePath);
-      final data = _novelStore.novelTextResponse!.text;
-      resultFile.writeAsStringSync(data);
-      File(fileInAllPath).writeAsStringSync(data);
-      LPrinter.d("path: $filePath");
-      BotToast.showText(text: "export ${filePath}");
-    }
-  }
 }

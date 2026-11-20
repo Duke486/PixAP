@@ -1,5 +1,4 @@
 import 'package:pixez/component/ipad_surface.dart';
-import 'dart:io';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
@@ -19,10 +18,8 @@ import 'package:pixez/page/search/result_page.dart';
 import 'package:pixez/page/series/illust_series_page.dart';
 import 'package:pixez/page/user/user_store.dart';
 import 'package:pixez/page/user/users_page.dart';
-import 'package:pixez/supportor_plugin.dart';
 import 'package:pixez/component/painter_avatar.dart';
 import 'package:pixez/utils/haptic_util.dart';
-import 'package:share_plus/share_plus.dart';
 
 class IllustDetailContent extends StatefulWidget {
   final Illusts illusts;
@@ -47,7 +44,6 @@ class _IllustDetailContentState extends State<IllustDetailContent> {
   late UserStore? userStore;
   late FocusNode _focusNode;
   late IllustStore? _illustStore;
-  String _selectedText = "";
 
   @override
   void initState() {
@@ -56,7 +52,6 @@ class _IllustDetailContentState extends State<IllustDetailContent> {
     _illustStore = widget.illustStore;
     userStore = widget.userStore;
     super.initState();
-    supportTranslateCheck();
     widget.loadAbout();
   }
 
@@ -345,9 +340,6 @@ class _IllustDetailContentState extends State<IllustDetailContent> {
               width: double.infinity,
               child: SelectionArea(
                 focusNode: _focusNode,
-                onSelectionChanged: (value) {
-                  _selectedText = value?.plainText ?? "";
-                },
                 contextMenuBuilder: (context, selectableRegionState) {
                   return _buildSelectionMenu(selectableRegionState, context);
                 },
@@ -364,34 +356,11 @@ class _IllustDetailContentState extends State<IllustDetailContent> {
     );
   }
 
-  bool supportTranslate = false;
 
   AdaptiveTextSelectionToolbar _buildSelectionMenu(
       SelectableRegionState editableTextState, BuildContext context) {
     final List<ContextMenuButtonItem> buttonItems =
         editableTextState.contextMenuButtonItems;
-    if (supportTranslate) {
-      buttonItems.insert(
-        buttonItems.length,
-        ContextMenuButtonItem(
-          label: I18n.of(context).translate,
-          onPressed: () async {
-            final selectionText = _selectedText;
-            if (Platform.isIOS) {
-              final box = context.findRenderObject() as RenderBox?;
-              final pos = box != null
-                  ? box.localToGlobal(Offset.zero) & box.size
-                  : null;
-              SharePlus.instance.share(
-                  ShareParams(text: selectionText, sharePositionOrigin: pos));
-              return;
-            }
-            await SupportorPlugin.start(selectionText);
-            ContextMenuController.removeAny();
-          },
-        ),
-      );
-    }
     return AdaptiveTextSelectionToolbar.buttonItems(
       anchors: editableTextState.contextMenuAnchors,
       buttonItems: buttonItems,
@@ -659,13 +628,4 @@ class _IllustDetailContentState extends State<IllustDetailContent> {
     });
   }
 
-  Future<void> supportTranslateCheck() async {
-    if (!Platform.isAndroid) return;
-    bool results = await SupportorPlugin.processText();
-    if (mounted) {
-      setState(() {
-        supportTranslate = results;
-      });
-    }
-  }
 }

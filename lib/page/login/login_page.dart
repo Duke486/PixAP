@@ -20,16 +20,13 @@ import 'package:bot_toast/bot_toast.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:pixez/component/ipad_surface.dart';
 import 'package:pixez/constants.dart';
-import 'package:pixez/custom_tab_plugin.dart';
 import 'package:pixez/er/leader.dart';
 import 'package:pixez/i18n.dart';
-import 'package:pixez/main.dart';
 import 'package:pixez/network/oauth_client.dart';
 import 'package:pixez/page/about/about_page.dart';
 import 'package:pixez/page/hello/setting/setting_quality_page.dart';
 import 'package:pixez/page/login/token_page.dart';
 import 'package:pixez/page/webview/webview_page.dart';
-import 'package:pixez/weiss_plugin.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 class LoginPage extends StatefulWidget {
@@ -216,25 +213,10 @@ class _LoginPageState extends State<LoginPage> {
       await Leader.push(context, WebViewPage(url: url));
       return;
     }
-    if (Platform.isMacOS) {
-      try {
-        CustomTabPlugin.launch(url);
-      } catch (e) {
-        BotToast.showText(text: e.toString());
-      }
-      return;
-    }
-    if (userSetting.oauthNetworkMode.usesCompatibleConnection) {
-      // await WeissServer.listener();
-      await WeissPlugin.start();
-      await WeissPlugin.proxy();
-      Leader.push(context, WebViewPage(url: url));
-    } else {
-      try {
-        CustomTabPlugin.launch(url);
-      } catch (e) {
-        BotToast.showText(text: e.toString());
-      }
+    try {
+      await launchUrlString(url);
+    } catch (e) {
+      BotToast.showText(text: e.toString());
     }
   }
 }

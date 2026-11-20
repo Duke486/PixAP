@@ -16,7 +16,6 @@ import 'package:pixez/component/ipad_surface.dart';
  *
  */
 
-import 'dart:io';
 
 import 'package:bot_toast/bot_toast.dart';
 import 'package:easy_refresh/easy_refresh.dart';
@@ -49,12 +48,10 @@ import 'package:pixez/page/picture/tag_for_illust_page.dart';
 import 'package:pixez/page/picture/ugoira_loader.dart';
 import 'package:pixez/page/picture/user_follow_button.dart';
 import 'package:pixez/utils/haptic_util.dart';
-import 'package:pixez/page/report/report_items_page.dart';
 import 'package:pixez/page/search/result_page.dart';
 import 'package:pixez/page/user/user_store.dart';
 import 'package:pixez/page/user/users_page.dart';
 import 'package:pixez/page/zoom/photo_zoom_page.dart';
-import 'package:pixez/supportor_plugin.dart';
 import 'package:share_plus/share_plus.dart';
 
 class IllustLightingPage extends StatefulWidget {
@@ -159,7 +156,6 @@ class _IllustVerticalPageState extends State<IllustVerticalPage>
     _illustStore.fetch();
     _aboutStore = IllustAboutStore(widget.id, _refreshController);
     super.initState();
-    supportTranslateCheck();
   }
 
   @override
@@ -412,17 +408,7 @@ class _IllustVerticalPageState extends State<IllustVerticalPage>
     return null;
   }
 
-  bool supportTranslate = false;
 
-  Future<void> supportTranslateCheck() async {
-    if (!Platform.isAndroid) return;
-    bool results = await SupportorPlugin.processText();
-    if (mounted) {
-      setState(() {
-        supportTranslate = results;
-      });
-    }
-  }
 
   Widget colorText(String text, BuildContext context) {
     return SelectionArea(
@@ -1281,43 +1267,6 @@ class _IllustVerticalPageState extends State<IllustVerticalPage>
                           title: Text(I18n.of(dialogContext).report),
                           leading: Icon(Icons.report),
                           onTap: () async {
-                            if (Platform.isAndroid) {
-                              Navigator.of(dialogContext).pop();
-                              await Reporter.show(
-                                context,
-                                () async => await muteStore.insertBanIllusts(
-                                  BanIllustIdPersist(
-                                    illustId: widget.id.toString(),
-                                    name: illusts.title,
-                                  ),
-                                ),
-                              );
-                            } else {
-                              await showDialog(
-                                context: dialogContext,
-                                builder: (context) {
-                                  return AlertDialog(
-                                    title: Text(I18n.of(context).report),
-                                    content:
-                                        Text(I18n.of(context).report_message),
-                                    actions: <Widget>[
-                                      TextButton(
-                                        child: Text(I18n.of(context).cancel),
-                                        onPressed: () {
-                                          Navigator.of(context).pop("CANCEL");
-                                        },
-                                      ),
-                                      TextButton(
-                                        child: Text(I18n.of(context).ok),
-                                        onPressed: () {
-                                          Navigator.of(context).pop("OK");
-                                        },
-                                      ),
-                                    ],
-                                  );
-                                },
-                              );
-                            }
                           },
                         ),
                         SizedBox(height: 8),
@@ -1369,27 +1318,4 @@ class _IllustVerticalPageState extends State<IllustVerticalPage>
 
   @override
   bool get wantKeepAlive => false;
-}
-
-class TextSelectionFix {
-  static TextSelectionControls? buildControls(BuildContext context) {
-    TextSelectionControls? controls = null;
-    switch (Theme.of(context).platform) {
-      case TargetPlatform.android:
-      case TargetPlatform.fuchsia:
-        controls ??= materialTextSelectionControls;
-        break;
-      case TargetPlatform.iOS:
-        controls ??= cupertinoTextSelectionControls;
-        break;
-      case TargetPlatform.linux:
-      case TargetPlatform.windows:
-        controls ??= desktopTextSelectionControls;
-        break;
-      case TargetPlatform.macOS:
-        controls ??= cupertinoDesktopTextSelectionControls;
-        break;
-    }
-    return controls;
-  }
 }

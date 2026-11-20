@@ -12,13 +12,11 @@
  *  You should have received a copy of the GNU General Public License along with
  *  this program. If not, see <http://www.gnu.org/licenses/>.
  */
-import 'dart:io';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:pixez/constants.dart';
 import 'package:pixez/i18n.dart';
 import 'package:pixez/main.dart';
-import 'package:pixez/page/hello/android_hello_page.dart';
 import 'package:pixez/page/hello/hello_page.dart';
 import 'package:pixez/page/hello/setting/setting_page.dart';
 import 'package:pixez/page/novel/new/novel_new_page.dart';
@@ -85,9 +83,7 @@ class _NovelRailState extends State<NovelRail> {
         floatingActionButton: FloatingActionButton(
           onPressed: () {
             Navigator.of(context).pushReplacement(MaterialPageRoute(
-                builder: (context) => Platform.isIOS || Platform.isMacOS
-                    ? HelloPage()
-                    : AndroidHelloPage()));
+                builder: (context) => HelloPage()));
           },
           child: Icon(Icons.picture_in_picture),
         ),

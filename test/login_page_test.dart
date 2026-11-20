@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:pixez/component/ipad_surface.dart';
-import 'package:pixez/constants.dart';
 import 'package:pixez/er/leader.dart';
 import 'package:pixez/page/hello/hello_page.dart';
 import 'package:pixez/page/login/login_page.dart';
@@ -62,7 +61,7 @@ void main() {
     final home = root.routes.last as MaterialPageRoute<dynamic>;
     expect(home.builder(detailContext), isA<HelloPage>());
     await tester.pumpWidget(const SizedBox());
-  }, skip: Constants.isFluent);
+  });
 }
 
 class _PushObserver extends NavigatorObserver {

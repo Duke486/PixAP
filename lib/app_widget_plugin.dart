@@ -8,7 +8,7 @@ class AppWidgetPlugin {
 
   static Future<void> setRecommendType(String type) async {
     if (DemoMode.active) return;
-    if (!Platform.isAndroid && !Platform.isIOS) {
+    if (!Platform.isIOS) {
       return;
     }
     await platform.invokeMethod<void>('setRecommendType', {'type': type});

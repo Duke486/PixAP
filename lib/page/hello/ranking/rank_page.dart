@@ -17,7 +17,6 @@
 import 'package:pixez/component/ipad_surface.dart';
 import 'dart:math' as math;
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart' show defaultTargetPlatform;
@@ -140,16 +139,8 @@ class _RankPageState extends State<RankPage>
                 reselectPainter.width.ceilToDouble() + 16,
               );
               reselectPainter.dispose();
-              final iconButtonCount = Platform.isAndroid ? 2 : 1;
+              const iconButtonCount = 1;
               final actions = [
-                if (Platform.isAndroid)
-                  SizedBox(
-                    width: kMinInteractiveDimension,
-                    child: IconButton(
-                      icon: const Icon(Icons.fullscreen),
-                      onPressed: fullScreenStore.toggle,
-                    ),
-                  ),
                 SizedBox(
                   width: reselectWidth,
                   child: TextButton(

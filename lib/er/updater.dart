@@ -1,7 +1,6 @@
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:pixez/constants.dart';
-import 'package:pixez/er/lprinter.dart';
 
 enum Result { yes, no, timeout }
 
@@ -10,37 +9,32 @@ class Updater {
   static String? latestVersion;
 
   static Future<Result> check() async {
-    if (Constants.isGooglePlay) return Result.no;
-    final result = await compute(checkUpdate, "");
-    Updater.result = result;
-    return result;
-  }
-}
+    try {
+      final response = await Dio().get<Map<String, dynamic>>(
+        Constants.latestReleaseApi,
+      );
+      final tag = response.data?['tag_name'];
+      if (tag is! String) return result = Result.timeout;
 
-Future<Result> checkUpdate(String arg) async {
-  LPrinter.d("check for update ============");
-  try {
-    Response response =
-        await Dio(BaseOptions(baseUrl: 'https://api.github.com'))
-            .get('/repos/Notsfsssf/pixez-flutter/releases/latest');
-    String tagName = response.data['tag_name'];
-    Updater.latestVersion = tagName;
-    LPrinter.d("tagName:$tagName ");
-    if (tagName != Constants.tagName) {
-      List<String> remoteList = tagName.split(".");
-      List<String> localList = Constants.tagName.split(".");
-      LPrinter.d("r:$remoteList l$localList");
-      if (remoteList.length != localList.length) return Result.yes;
-      for (var i = 0; i < remoteList.length; i++) {
-        int r = int.tryParse(remoteList[i]) ?? 0;
-        int l = int.tryParse(localList[i]) ?? 0;
-        LPrinter.d("r:$r l$l");
-        if (r > l) return Result.yes;
+      final remote = _versionParts(tag);
+      final local = _versionParts((await PackageInfo.fromPlatform()).version);
+      if (remote == null || local == null) return result = Result.timeout;
+
+      latestVersion = tag;
+      for (var i = 0; i < remote.length; i++) {
+        if (remote[i] != local[i]) {
+          return result = remote[i] > local[i] ? Result.yes : Result.no;
+        }
       }
+      return result = Result.no;
+    } catch (_) {
+      return result = Result.timeout;
     }
-  } catch (e) {
-    print(e);
-    return Result.timeout;
   }
-  return Result.no;
+
+  static List<int>? _versionParts(String version) {
+    final match = RegExp(r'^v?(\d+)\.(\d+)\.(\d+)$').firstMatch(version);
+    if (match == null) return null;
+    return [for (var i = 1; i <= 3; i++) int.parse(match.group(i)!)];
+  }
 }
