@@ -24,7 +24,7 @@ class _RecomUserRoadState extends State<RecomUserRoad> {
 
   @override
   Widget build(BuildContext context) {
-    return Material(color: usesIPadLayout(context) ? Theme.of(context).scaffoldBackgroundColor : Colors.transparent, child: InkWell(
+    return Material(type: MaterialType.transparency, child: InkWell(
       overlayColor: usesIPadLayout(context) ? const WidgetStatePropertyAll(Colors.transparent) : null,
       onTap: () {
         Navigator.of(context).push(MaterialPageRoute(builder: (context) {

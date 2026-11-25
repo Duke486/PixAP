@@ -38,7 +38,9 @@ import 'package:pixez/page/webview/saucenao_webview_page.dart';
 import 'package:pixez/utils/haptic_util.dart';
 
 class SearchPage extends StatefulWidget {
-  const SearchPage({Key? key}) : super(key: key);
+  const SearchPage({super.key, this.iPadRailInset = 0});
+
+  final double iPadRailInset;
 
   @override
   SearchPageState createState() => SearchPageState();
@@ -171,6 +173,9 @@ class SearchPageState extends State<SearchPage>
                 bottom: false,
                 child: SearchSuggestionPage(
                   key: ValueKey(_searchReset),
+                  scrimLeftInset: usesIPadLayout(context)
+                      ? widget.iPadRailInset + MediaQuery.paddingOf(context).left
+                      : 0,
                   onImageSearch: _imageSearch,
                   historySlivers: () => _inlineHistorySlivers(context),
                   idleContent: _buildContent(context, snapshot),

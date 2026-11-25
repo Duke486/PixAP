@@ -103,6 +103,7 @@ class HelloPage extends StatefulWidget {
 }
 
 class _HelloPageState extends State<HelloPage> {
+  static const _railContentInset = 82.0;
   static _HelloPageState? active;
   late StreamSubscription _sub;
   late int index;
@@ -146,7 +147,7 @@ class _HelloPageState extends State<HelloPage> {
         },
       ),
       NewPage(),
-      SearchPage(key: _searchKey),
+      SearchPage(key: _searchKey, iPadRailInset: _railContentInset),
       SettingPage(key: _settingsKey, transparentMenu: Platform.isIOS),
     ];
     Constants.type = 0;
@@ -470,7 +471,10 @@ class _HelloPageState extends State<HelloPage> {
         final page = _lists[index];
         if (!Platform.isIOS || (!usesIPadLayout(context) && !(isIPhone && index == 0))) return page;
         if (index >= 1 && index <= 3) {
-          return Padding(padding: const EdgeInsets.only(left: 82), child: page);
+          return Padding(
+            padding: const EdgeInsets.only(left: _railContentInset),
+            child: page,
+          );
         }
         if (index != 0) return Padding(padding: const EdgeInsets.symmetric(horizontal: 82), child: page);
         final top = MediaQuery.paddingOf(context).top;

@@ -239,7 +239,7 @@ void main() {
   );
 
   testWidgets(
-    'iPad search scrolls while idle and focuses at the safe top without widening',
+    'iPad search dims the rail gutter while focused',
     (tester) async {
       tester.view.devicePixelRatio = 1;
       tester.view.physicalSize = const Size(1100, 800);
@@ -252,13 +252,17 @@ void main() {
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
-            body: SearchSuggestionPage(
-              idleScrollController: scroll,
-              idleContent: ListView.builder(
-                controller: scroll,
-                itemCount: 30,
-                itemExtent: 100,
-                itemBuilder: (_, index) => Text('Tile $index'),
+            body: Padding(
+              padding: const EdgeInsets.only(left: 82),
+              child: SearchSuggestionPage(
+                scrimLeftInset: 82,
+                idleScrollController: scroll,
+                idleContent: ListView.builder(
+                  controller: scroll,
+                  itemCount: 30,
+                  itemExtent: 100,
+                  itemBuilder: (_, index) => Text('Tile $index'),
+                ),
               ),
             ),
           ),
@@ -268,6 +272,7 @@ void main() {
       final field = find.byType(TextField);
       final bar = find.byKey(const ValueKey('search-input-toolbar'));
       final title = find.byKey(const ValueKey('search-title-opacity'));
+      final scrim = find.byKey(const ValueKey('search-background-scrim'));
       final initialTop = tester.getTopLeft(field).dy;
       final idleWidth = tester.getSize(bar).width;
       expect(initialTop, greaterThan(160));
@@ -303,11 +308,13 @@ void main() {
       expect(tester.getTopLeft(bar).dy, 32);
       expect(tester.getSize(bar).width, idleWidth);
       expect(tester.widget<Opacity>(title).opacity, 0);
+      expect(tester.getRect(scrim), const Rect.fromLTWH(0, 0, 1100, 800));
       expect(find.byType(ListTile), findsWidgets);
       await tester.dragFrom(const Offset(950, 500), const Offset(0, -250));
       await tester.pumpAndSettle();
       expect(scroll.offset, greaterThan(176));
       expect(find.byType(ListTile), findsNothing);
+      expect(scrim, findsNothing);
       expect(tester.widget<TextField>(field).controller!.text, '123456');
       await tester.pumpWidget(const SizedBox());
     },

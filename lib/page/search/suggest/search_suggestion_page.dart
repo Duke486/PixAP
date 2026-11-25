@@ -44,6 +44,7 @@ class SearchSuggestionPage extends StatefulWidget {
       (MediaQuery.sizeOf(context).height * .22).clamp(0.0, 184.0).toDouble();
   final String? preword;
   final Widget? idleContent;
+  final double scrimLeftInset;
   final ScrollController? idleScrollController;
   final List<Widget> Function()? historySlivers;
   final ValueChanged<BuildContext>? onImageSearch;
@@ -52,6 +53,7 @@ class SearchSuggestionPage extends StatefulWidget {
     super.key,
     this.preword,
     this.idleContent,
+    this.scrimLeftInset = 0,
     this.idleScrollController,
     this.historySlivers,
     this.onImageSearch,
@@ -323,6 +325,10 @@ class _SearchSuggestionPageState extends State<SearchSuggestionPage> {
             final sideInset = isIPhone ? 8.0 * progress : 0.0;
             return Stack(
               fit: StackFit.expand,
+              // The parent pager clips at the viewport edge, beyond the rail.
+              clipBehavior: widget.scrimLeftInset > 0
+                  ? Clip.none
+                  : Clip.hardEdge,
               children: [
                 NotificationListener<ScrollStartNotification>(
                   onNotification: (notification) {
@@ -340,6 +346,7 @@ class _SearchSuggestionPageState extends State<SearchSuggestionPage> {
                 ),
                 if (progress > 0)
                   Positioned.fill(
+                    left: -widget.scrimLeftInset,
                     child: IgnorePointer(
                       child: ColoredBox(
                         key: const ValueKey('search-background-scrim'),
