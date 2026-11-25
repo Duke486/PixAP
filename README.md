@@ -111,4 +111,6 @@ Xcode 工程使用 [Flutter 构建脚本](ios/Flutter/build_with_xcode.sh)。Rel
   </tr>
 </table>
 
+也感谢 [LINUX DO 社区](https://linux.do/)。
+
 [上游常见问题](https://github.com/Notsfsssf/pixez-flutter/blob/master/.github/FAQ.md)
