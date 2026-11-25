@@ -10,7 +10,7 @@
 
 PixAP 是基于 PixEz Flutter 改造的第三方 pixiv 客户端。iPhone 的底栏和 iPad 的侧栏随画廊浮动，搜索、作品预览和设置按 Apple 设备的屏幕与操作习惯重新设计。
 
-[下载 iOS IPA](https://github.com/Duke486/PixAP/releases/download/v1.9.90-build517/PixAP-iOS.ipa) · [安装说明](#安装) · [从源码构建](#从源码构建) · [问题反馈](https://github.com/Duke486/PixAP/issues)
+[下载 iOS IPA](https://github.com/Duke486/PixAP/releases/latest/download/PixAP-iOS.ipa) · [安装说明](#安装) · [从源码构建](#从源码构建) · [问题反馈](https://github.com/Duke486/PixAP/issues)
 
 </div>
 
@@ -74,7 +74,7 @@ PixAP 是基于 PixEz Flutter 改造的第三方 pixiv 客户端。iPhone 的底
 
 ## 安装
 
-从 [PixAP 1.9.90（517）](https://github.com/Duke486/PixAP/releases/tag/v1.9.90-build517) 下载 `PixAP-iOS.ipa`，用自己的签名工具签名后覆盖安装或首次安装。该 IPA 为 iPhone / iPad 通用未签名包。原生 Liquid Glass 需要 iOS / iPadOS 26 或更新版本。
+从 [GitHub Releases](https://github.com/Duke486/PixAP/releases/latest) 下载 `PixAP-iOS.ipa`，用自己的签名工具签名后覆盖安装或首次安装。该 IPA 为 iPhone / iPad 通用未签名包。原生 Liquid Glass 需要 iOS / iPadOS 26 或更新版本。
 
 ## 从源码构建
 

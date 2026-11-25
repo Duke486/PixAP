@@ -10,7 +10,7 @@
 
 PixAP는 PixEz Flutter를 바탕으로 만든 비공식 pixiv 클라이언트입니다. iPhone과 iPad에 떠 있는 탐색 막대를 적용하고, 검색과 작품 미리보기, 설정 화면을 Apple 기기에 맞춰 다시 설계했습니다.
 
-[iOS IPA 다운로드](https://github.com/Duke486/PixAP/releases/download/v1.9.90-build517/PixAP-iOS.ipa) · [설치](#설치) · [소스에서 빌드](#소스에서-빌드) · [문제 신고](https://github.com/Duke486/PixAP/issues)
+[iOS IPA 다운로드](https://github.com/Duke486/PixAP/releases/latest/download/PixAP-iOS.ipa) · [설치](#설치) · [소스에서 빌드](#소스에서-빌드) · [문제 신고](https://github.com/Duke486/PixAP/issues)
 
 </div>
 
@@ -74,7 +74,7 @@ PixAP는 PixEz Flutter를 바탕으로 만든 비공식 pixiv 클라이언트입
 
 ## 설치
 
-[PixAP 1.9.90 (517)](https://github.com/Duke486/PixAP/releases/tag/v1.9.90-build517)에서 `PixAP-iOS.ipa`를 다운로드합니다. IPA는 iPhone과 iPad에서 사용할 수 있는 미서명 패키지입니다. 사용하는 서명 도구로 서명한 뒤 새로 설치하거나 기존 앱을 업데이트하세요. 네이티브 Liquid Glass는 iOS 또는 iPadOS 26 이상에서 사용할 수 있습니다.
+[GitHub Releases](https://github.com/Duke486/PixAP/releases/latest)에서 `PixAP-iOS.ipa`를 다운로드합니다. IPA는 iPhone과 iPad에서 사용할 수 있는 미서명 패키지입니다. 사용하는 서명 도구로 서명한 뒤 새로 설치하거나 기존 앱을 업데이트하세요. 네이티브 Liquid Glass는 iOS 또는 iPadOS 26 이상에서 사용할 수 있습니다.
 
 ## 소스에서 빌드
 

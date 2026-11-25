@@ -10,7 +10,7 @@
 
 PixAP is a third-party pixiv client based on PixEz Flutter. It brings floating navigation to iPhone and iPad and redesigns search, artwork previews, and preferences for Apple devices.
 
-[Download the iOS IPA](https://github.com/Duke486/PixAP/releases/download/v1.9.90-build517/PixAP-iOS.ipa) · [Installation](#installation) · [Build from source](#build-from-source) · [Report an issue](https://github.com/Duke486/PixAP/issues)
+[Download the iOS IPA](https://github.com/Duke486/PixAP/releases/latest/download/PixAP-iOS.ipa) · [Installation](#installation) · [Build from source](#build-from-source) · [Report an issue](https://github.com/Duke486/PixAP/issues)
 
 </div>
 
@@ -74,7 +74,7 @@ The posters and screenshots show artwork, manga, work titles, artist names, and 
 
 ## Installation
 
-Download `PixAP-iOS.ipa` from [PixAP 1.9.90 (517)](https://github.com/Duke486/PixAP/releases/tag/v1.9.90-build517). The unsigned IPA supports both iPhone and iPad. Use your preferred signing tool before installing or updating the app. Native Liquid Glass requires iOS or iPadOS 26 or later.
+Download `PixAP-iOS.ipa` from [GitHub Releases](https://github.com/Duke486/PixAP/releases/latest). The unsigned IPA supports both iPhone and iPad. Use your preferred signing tool before installing or updating the app. Native Liquid Glass requires iOS or iPadOS 26 or later.
 
 ## Build from source
 

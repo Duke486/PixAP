@@ -10,7 +10,7 @@
 
 PixAP は PixEz Flutter をベースにした非公式の pixiv クライアントです。iPhone と iPad にフローティングナビゲーションを採用し、検索、作品のプレビュー、設定を Apple デバイス向けに再設計しました。
 
-[iOS 用 IPA をダウンロード](https://github.com/Duke486/PixAP/releases/download/v1.9.90-build517/PixAP-iOS.ipa) · [インストール](#インストール) · [ソースからビルド](#ソースからビルド) · [不具合を報告](https://github.com/Duke486/PixAP/issues)
+[iOS 用 IPA をダウンロード](https://github.com/Duke486/PixAP/releases/latest/download/PixAP-iOS.ipa) · [インストール](#インストール) · [ソースからビルド](#ソースからビルド) · [不具合を報告](https://github.com/Duke486/PixAP/issues)
 
 </div>
 
@@ -74,7 +74,7 @@ PixAP は PixEz Flutter をベースにした非公式の pixiv クライアン�
 
 ## インストール
 
-[PixAP 1.9.90（517）](https://github.com/Duke486/PixAP/releases/tag/v1.9.90-build517) から `PixAP-iOS.ipa` をダウンロードします。IPA は iPhone と iPad に対応する未署名版です。お使いの署名ツールで署名してから、新規インストールまたは上書きインストールしてください。ネイティブの Liquid Glass には iOS または iPadOS 26 以降が必要です。
+[GitHub Releases](https://github.com/Duke486/PixAP/releases/latest) から `PixAP-iOS.ipa` をダウンロードします。IPA は iPhone と iPad に対応する未署名版です。お使いの署名ツールで署名してから、新規インストールまたは上書きインストールしてください。ネイティブの Liquid Glass には iOS または iPadOS 26 以降が必要です。
 
 ## ソースからビルド
 
