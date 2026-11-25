@@ -1,64 +1,80 @@
 <div align="center">
 
-<img src="assets/images/pixap_login_icon.png" alt="PixAP 应用图标" width="96">
+<img src="assets/images/pixap_login_icon.png" alt="" width="96">
 
 # PixAP
 
-### 果味的 PixEz · 为 Apple 全面重新设计
+**给 iPhone、iPad 和 Mac 的果味 PixEz。**
 
-采用 Apple 最新界面风格的 pixiv 第三方客户端，支持 iPhone、iPad 和 Mac。原生液态玻璃（Liquid Glass）融入悬浮导航与工具栏，从首页画廊到作品详情、搜索和设置，整个浏览体验焕然一新。
+PixAP 是基于 PixEz Flutter 改造的第三方 pixiv 客户端。iPhone 的底栏和 iPad 的侧栏随画廊浮动，搜索、作品预览和设置按 Apple 设备的屏幕与操作习惯重新设计。
 
-[下载 IPA](https://github.com/Duke486/PixAP/releases/latest) · [安装说明](#安装) · [问题反馈](https://github.com/Duke486/PixAP/issues)
+[下载 iOS IPA](https://github.com/Duke486/PixAP/releases/download/v1.9.90-build517/PixAP-iOS.ipa) · [安装说明](#安装) · [从源码构建](#从源码构建) · [问题反馈](https://github.com/Duke486/PixAP/issues)
 
 </div>
 
-> **原项目 [PixEz Flutter](https://github.com/Notsfsssf/pixez-flutter)** 由 Perol_Notsfsssf 发起。PixAP 由 [Duke486](https://github.com/Duke486) 在其基础上为 Apple 设备改造，沿用 pixiv 接入与客户端功能，重新设计界面和交互。感谢原作者与所有为 PixEz Flutter 编写代码、维护文档和翻译的贡献者。
+![iPad Pro 与 iPhone Air 上的 PixAP 首页，分别采用悬浮侧栏和底栏](docs/posters/01-liquid-glass.webp)
 
-![iPad 首页的亮点推荐、插画画廊与液态玻璃侧栏](docs/screenshots/home.jpg)
+## 苹果式导航与首页
 
-## 为 Apple 全面重新设计
+从 **iOS / iPadOS 26** 起，一级导航使用原生 Liquid Glass。iPhone 可在首页、排行、速览和搜索之间横滑，底栏选中项随手势移动。iPad 从左侧栏切换页面，横屏有更宽的多列画廊。一级页面共享缓慢流动的 Pixiv 蓝背景。
 
-iPad 横屏用悬浮侧栏连接首页、排行榜、收藏、搜索和更多，从多列画廊点进作品详情，再顺着作者和专题继续探索。设置采用双栏，切换偏好时可以一直看到设置目录。
+打开 **首页** 时，PixAP 先显示上次的推荐内容。自动刷新后，可以在提示出现的 3 秒内撤销。
 
-在 iOS / iPadOS 26 及以上，导航与工具栏使用 SwiftUI 和 UIKit 的原生 Liquid Glass API。玻璃控件随内容呈现透光效果，可交互的材质与导航选中动效回应触控。新版图标采用 Apple Icon Composer 分层资源。
+## 亮点专题
 
-<table>
-<tr>
-<td width="50%" valign="top">
-<img src="docs/screenshots/artist.jpg" width="100%" alt="iPad 作者主页">
-<h3>从作品找到作者</h3>
-<p>在作者主页浏览作品、收藏与资料，插画与漫画分别呈现。</p>
-</td>
-<td width="50%" valign="top">
-<img src="docs/screenshots/following.jpg" width="100%" alt="iPad 已关注作者列表">
-<h3>一眼看到关注的作者</h3>
-<p>关注列表用作品预览展示每位作者，也能切换到收藏、动态和追更列表。</p>
-</td>
-</tr>
-<tr>
-<td width="50%" valign="top">
-<img src="docs/screenshots/search.jpg" width="100%" alt="iPad 搜索页">
-<h3>从关键词、ID 或链接开始</h3>
-<p>搜索入口支持关键词、作品 ID 与 pixiv 链接，下方可直接探索推荐标签。</p>
-</td>
-<td width="50%" valign="top">
-<img src="docs/screenshots/settings.jpg" width="100%" alt="iPad 双栏偏好设置">
-<h3>按自己的习惯浏览</h3>
-<p>在双栏设置中调整画质、网格列数和欢迎页，也能从同一侧栏打开漫画与小说。</p>
-</td>
-</tr>
-</table>
+![iPad 和 iPhone 上的亮点专题网格](docs/posters/08-spotlight.webp)
+
+在 **首页 → 亮点 → 更多** 打开专题列表。PixAP 在 iPhone 上排成两列，在 iPad 上排成三列，统一封面比例与标题高度。滚动时，内容从逐渐模糊的顶栏下方经过。
+
+## 排行
+
+![排行榜的玻璃筛选工具浮在 iPhone 和 iPad 的画廊上方](docs/posters/02-rankings.webp)
+
+从 **排行** 进入，顶部的玻璃分段可以直接切换榜单。点右侧日历，用系统日期选择器打开指定日期的排行。
+
+## 收藏与关注
+
+![iPad 收藏画廊，以及 iPhone 收藏和已关注两个视图](docs/posters/03-library.webp)
+
+进入心形图标 **速览**，在顶部切换「收藏」和「已关注」。PixAP 重做了这里的悬浮工具栏，把公开和非公开筛选放在分段旁边。iPad 上的作品铺成多列画廊，已关注的作者以作品预览呈现。
+
+## 作者主页
+
+![iPad 和 iPhone 上的作者主页横幅、作品分段和多列画廊](docs/posters/09-artist.webp)
+
+在 **速览 → 已关注** 点作者卡片，或从作品详情点作者头像。PixAP 为 iPhone 和 iPad 分别排布作者横幅、浮动工具栏与作品画廊。iPad 把作者资料放在中间，作品区展开为多列。
+
+## 搜索
+
+![iPad 与 iPhone 搜索首页上的推荐标签封面](docs/posters/04-search.webp)
+
+![iPad 与 iPhone 上移到键盘上方的搜索建议](docs/posters/07-search-suggestions.webp)
+
+**搜索** 首页将推荐标签排成作品封面方格，换图时保留旧图，等新图解码后再淡入。点输入框，搜索栏移至顶部，建议列表在键盘上方展开。输入框右侧的以图搜图按钮使用 iOS 原生选图菜单，可从照片或文件选图，预览后再提交。
+
+## R18 内容显示
+
+![R18 排行卡片在 iPad 和 iPhone 上使用粒子遮罩](docs/posters/05-content-display.webp)
+
+打开 **更多 → 偏好设置 → NSFW 内容显示方式**。PixAP 为卡片增加了保留颜色轮廓的粒子遮罩，也可选「替换图片」或「直接显示」。
+
+## 双栏偏好设置
+
+![iPad 的双栏设置，左侧保留目录，右侧显示偏好选项](docs/posters/06-preferences.webp)
+
+在 **更多 → 偏好设置**，iPad 同时显示侧边目录与当前设置页。可以分别调整作品卡片、插画详情、漫画详情及全屏查看的画质，指定启动时打开首页、排行、速览或搜索，也可以为作品详情和全屏查看开启右边缘滑动返回。
+
+## 截图与作品致谢
+
+海报和截图中出现的插画、漫画、作品标题、作者名称及其他相关内容，仅用于演示 PixAP 的界面与功能。感谢各位创作者，作品版权归各自权利人所有。如有侵权，请通过 [GitHub Issues](https://github.com/Duke486/PixAP/issues) 联系维护者，我们会移除相关内容。
 
 ## 安装
 
-1. 在 [GitHub Releases](https://github.com/Duke486/PixAP/releases/latest) 下载 `PixAP-iOS.ipa`。
-2. 用自己的签名工具为 IPA 签名，再安装到 iPhone 或 iPad。
-
-IPA 为未签名版。推荐在 **iOS / iPadOS 26 或更新版本**体验原生液态玻璃。本次提供 iPhone 与 iPad 安装包。
+从 [PixAP 1.9.90（517）](https://github.com/Duke486/PixAP/releases/tag/v1.9.90-build517) 下载 `PixAP-iOS.ipa`，用自己的签名工具签名后覆盖安装或首次安装。该 IPA 为 iPhone / iPad 通用未签名包。原生 Liquid Glass 需要 iOS / iPadOS 26 或更新版本。
 
 ## 从源码构建
 
-使用带 iOS 26 或更新 SDK 的 Xcode、[mise.toml](mise.toml) 指定的 Flutter 版本，以及 Rust 工具链。执行以下命令构建未签名的设备版，也可以参考 [iOS 构建流程示例](docs/build-workflows/build_ios.yml)。
+使用带 iOS 26 或更新 SDK 的 Xcode、[mise.toml](mise.toml) 指定的 Flutter 版本，以及 Rust 工具链。构建未签名的 iOS 设备版可参考 [iOS 构建流程示例](docs/build-workflows/build_ios.yml)。
 
 ```sh
 flutter pub get
@@ -67,13 +83,13 @@ dart run build_runner build
 flutter build ios --release --no-codesign
 ```
 
-Xcode 工程使用 [Flutter 构建脚本](ios/Flutter/build_with_xcode.sh)。Release 标签附有该 IPA 对应的源码。Mac 版面向 macOS 12 及以上，使用自己的 Mac 签名配置后可在本机运行 `flutter build macos --release`。
+Xcode 工程使用 [Flutter 构建脚本](ios/Flutter/build_with_xcode.sh)。Release 标签附有 IPA 对应的源码。macOS 12 及以上可使用自己的签名配置，在本机运行 `flutter build macos --release`。
 
-## 源码来源、感谢与许可
+## 源码、感谢与许可
 
-PixAP 是独立维护的 PixEz Flutter 衍生项目，与 Apple、pixiv 及上游项目无官方关联。上游基线为 [`f11be4dd`](https://github.com/Notsfsssf/pixez-flutter/commit/f11be4ddf03775175006e4b3ebd70c446961f4e6)。Apple 界面重设计于 2026-11-20 首次发布，修改记录见提交历史。
+PixAP 由 [Duke486](https://github.com/Duke486) 基于 [PixEz Flutter](https://github.com/Notsfsssf/pixez-flutter) 开发并独立维护。感谢上游作者 Perol_Notsfsssf 和所有贡献者。上游基线为 [`f11be4dd`](https://github.com/Notsfsssf/pixez-flutter/commit/f11be4ddf03775175006e4b3ebd70c446961f4e6)。
 
-源码按 [GNU GPL v3](LICENSE) 发布。原有版权与许可声明保留在源码中，第三方组件的声明见各组件目录。
+项目与 Apple、pixiv 及上游项目无官方关联。源码按 [GNU GPL v3](LICENSE) 发布。原有版权与许可声明保存在源码和第三方组件目录中。
 
 <details>
 <summary><strong>上游贡献者与文档</strong></summary>
