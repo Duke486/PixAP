@@ -47,7 +47,9 @@ import 'package:pixez/page/task/job_page.dart';
 import 'package:pixez/page/theme/theme_page.dart';
 
 class SettingPage extends StatefulWidget {
-  const SettingPage({Key? key}) : super(key: key);
+  const SettingPage({Key? key, this.transparentMenu = false}) : super(key: key);
+
+  final bool transparentMenu;
 
   @override
   SettingPageState createState() => SettingPageState();
@@ -127,6 +129,7 @@ class SettingPageState extends State<SettingPage> {
 
   Widget _menu(BuildContext context) {
     return Scaffold(
+      backgroundColor: widget.transparentMenu ? Colors.transparent : null,
       body: SafeArea(
         bottom: !isIPhone,
         child: SingleChildScrollView(

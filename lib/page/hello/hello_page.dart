@@ -1,5 +1,6 @@
 import 'package:pixez/page/hello/setting/demo_mode.dart';
 import 'package:pixez/component/ipad_surface.dart';
+import 'package:pixez/component/home_aurora.dart';
 import 'package:pixez/component/progressive_toolbar_blur.dart';
 /*
  * Copyright (C) 2020. by perol_notsf, All rights reserved
@@ -146,7 +147,7 @@ class _HelloPageState extends State<HelloPage> {
       ),
       NewPage(),
       SearchPage(key: _searchKey),
-      SettingPage(key: _settingsKey),
+      SettingPage(key: _settingsKey, transparentMenu: Platform.isIOS),
     ];
     Constants.type = 0;
     fetcher.context = context;
@@ -206,20 +207,20 @@ class _HelloPageState extends State<HelloPage> {
       builder: (context, constraints) {
         final glassBar = Platform.isIOS && MediaQuery.of(context).size.shortestSide >= 600;
         final wide = !isIPhone && !glassBar && constraints.maxWidth > constraints.maxHeight;
-        if (glassBar) {
-          return Scaffold(
-            body: _buildPageView(context),
-          );
-        }
+        final pages = _buildPageView(context);
         return Scaffold(
-          body: Row(
-            children: <Widget>[
-              if (wide) ..._buildRail(context),
-              Expanded(child: _buildPageView(context)),
+          body: Stack(
+            fit: StackFit.expand,
+            children: [
+              if (Platform.isIOS) const HomeAurora(),
+              if (wide)
+                Row(children: [..._buildRail(context), Expanded(child: pages)])
+              else
+                pages,
             ],
           ),
-          extendBody: true,
-          bottomNavigationBar: wide
+          extendBody: !glassBar,
+          bottomNavigationBar: wide || glassBar
               ? null
               : Observer(
                   builder: (context) {
