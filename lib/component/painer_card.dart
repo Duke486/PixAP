@@ -1,3 +1,6 @@
+import 'package:pixez/main.dart';
+import 'package:pixez/store/user_setting.dart';
+import 'package:pixez/component/nsfw_artwork.dart';
 import 'package:pixez/component/card_reflection.dart';
 import 'package:pixez/component/ipad_surface.dart';
 /*
@@ -20,7 +23,6 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:pixez/component/painter_avatar.dart';
 import 'package:pixez/component/pixiv_image.dart';
-import 'package:pixez/constants.dart';
 import 'package:pixez/exts.dart';
 import 'package:pixez/models/user_preview.dart';
 import 'package:pixez/network/api_client.dart';
@@ -68,11 +70,11 @@ class _PainterCardState extends State<PainterCard> {
         }));
         setState(() {});
       },
-      child: usesIPadLayout(context)
+      child: usesAppleControls(context)
         ? IPadGalleryCard(scrolling: true, child: Column(children: [_buildPreviewSlivers(context), Stack(children: [
             Positioned.fill(child: Observer(builder: (_) {
               final urls = isNovel ? _user.novels.take(3).map((n) => n.imageUrls.squareMedium)
-                : _user.illusts.take(3).map((i) => i.hIsNotAllow() ? null : i.imageUrls.squareMedium);
+                : _user.illusts.take(3).map((i) => (i.isNsfw && userSetting.nsfwDisplayMode == NsfwDisplayMode.replace) ? null : i.imageUrls.squareMedium);
               return CardReflection(style: artistReflection, images: [
                 for (final url in urls) url == null ? null : PixivProvider.url(url),
                 ...List<ImageProvider?>.filled(3 - urls.length, null),
@@ -133,16 +135,10 @@ class _PainterCardState extends State<PainterCard> {
                           child: Observer(
                             builder: (_) {
                               final illust = _user.illusts[i];
-                              if (illust.hIsNotAllow()) {
-                                return Image.asset(
-                                  Constants.no_h,
-                                  fit: BoxFit.cover,
-                                );
-                              }
-                              return PixivImage(
-                                illust.imageUrls.squareMedium,
-                                fit: BoxFit.cover,
-                              );
+                              return NsfwArtwork.preview(illust, buildPreview: (mask) => PixivImage(
+                                illust.imageUrls.squareMedium, fit: BoxFit.cover,
+                                loadedImageBuilder: mask,
+                              ));
                             },
                           ),
                         )

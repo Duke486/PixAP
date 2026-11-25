@@ -1,3 +1,4 @@
+import 'package:pixez/component/glass_form_control.dart';
 import 'dart:io';
 
 import 'package:bot_toast/bot_toast.dart';
@@ -346,8 +347,8 @@ class _NovelUsersPageState extends State<NovelUsersPage>
     }
   }
 
-  PopupMenuButton<int> _buildPopMenu(BuildContext context) {
-    return PopupMenuButton<int>(
+  Widget _buildPopMenu(BuildContext context) {
+    return glassPopup(context, PopupMenuButton<int>(
       onSelected: (index) async {
         switch (index) {
           case 0:
@@ -436,7 +437,7 @@ class _NovelUsersPageState extends State<NovelUsersPage>
           ),
         ];
       },
-    );
+    ), 'ellipsis');
   }
 
   Widget _buildFakeNameFollow(BuildContext context) {

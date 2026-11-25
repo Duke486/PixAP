@@ -1,3 +1,4 @@
+import 'package:pixez/component/glass_form_control.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:pixez/i18n.dart';
@@ -46,12 +47,12 @@ class _TagForIllustPageState extends State<TagForIllustPage> {
                     onPressed: () {
                       _store.checkAll();
                     }),
-                Switch(
+                glassSwitch(Switch(
                   onChanged: (bool value) {
                     _store.setRestrict(value);
                   },
                   value: _store.restrict == "public",
-                ),
+                )),
                 // 确认图标
                 IconButton(
                     icon: Icon(Icons.check),

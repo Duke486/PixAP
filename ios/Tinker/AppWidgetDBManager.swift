@@ -14,7 +14,7 @@ struct AppWidgetIllust {
     let userId: Int
     let pictureUrl: String
     let largeUrl: String?
-    let originalUrl: String?
+    let thumbnail: Data?
     let title: String?
     let userName: String?
     let time: Int
@@ -27,7 +27,6 @@ enum AppWidgetDBManager {
     static let cillust_id = "illust_id"
     static let cuser_id = "user_id"
     static let cpicture_url = "picture_url"
-    static let coriginal_url = "original_url"
     static let clarge_url = "large_url"
     static let ctitle = "title"
     static let cuser_name = "user_name"
@@ -36,78 +35,49 @@ enum AppWidgetDBManager {
     
     static func fetch() -> [AppWidgetIllust] {
         let selectedType = UserDefaults(suiteName: "group.com.duke486.pixez.ipad")?.string(forKey: "widget_illust_type") ?? "recom"
-        guard let db = groupDB() else {
+        guard let container = containerURL() else {
             return []
         }
+        let url = container.appendingPathComponent("DB/glanceillustpersist.db")
+        guard FileManager.default.fileExists(atPath: url.path) else { return [] }
+        let db = FMDatabase(path: url.path)
+        guard db.open() else { return [] }
+        defer { db.close() }
         var illusts = [AppWidgetIllust]()
         do {
-            db.open()
-            let qSet = try db.executeQuery("select * from \(tableIllustPersist) where type = ? ORDER BY RANDOM() LIMIT 1", values: [selectedType])
+            let qSet = try db.executeQuery(
+                "SELECT * FROM \(tableIllustPersist) WHERE type = ? ORDER BY time DESC LIMIT 40",
+                values: [selectedType]
+            )
+            defer { qSet.close() }
+            let thumbnailColumn = qSet.columnIndex(forName: "thumbnail")
+            let largeURLColumn = qSet.columnIndex(forName: clarge_url)
             while qSet.next() {
-                let id = qSet.int(forColumn: cid)
-                let illustId = qSet.int(forColumn: cillust_id)
-                let userId = qSet.int(forColumn: cuser_id)
-                let pictureId = qSet.string(forColumn: cpicture_url)
-                let title = qSet.string(forColumn: ctitle)
-                let userName = qSet.string(forColumn: cuser_name)
-                let time = qSet.int(forColumn: ctime)
-                let type = qSet.string(forColumn: ctype)
-                let largeUrl = qSet.string(forColumn: clarge_url)
-                let originalUrl = qSet.string(forColumn: coriginal_url)
-                let illust = AppWidgetIllust(id: Int(exactly: id)!, illustId: Int(illustId), userId: Int(userId), pictureUrl: pictureId!, largeUrl: largeUrl, originalUrl: originalUrl, title: title!, userName: userName!, time: Int(exactly: time)!, type: type!)
-                illusts.append(illust)
-                print("db === \(illust)")
+                guard let pictureURL = qSet.string(forColumn: cpicture_url) else { continue }
+                illusts.append(AppWidgetIllust(
+                    id: Int(qSet.longLongInt(forColumn: cid)),
+                    illustId: Int(qSet.longLongInt(forColumn: cillust_id)),
+                    userId: Int(qSet.longLongInt(forColumn: cuser_id)),
+                    pictureUrl: pictureURL,
+                    largeUrl: largeURLColumn >= 0 ? qSet.string(forColumnIndex: largeURLColumn) : nil,
+                    thumbnail: thumbnailColumn >= 0 ? qSet.data(forColumnIndex: thumbnailColumn) : nil,
+                    title: qSet.string(forColumn: ctitle),
+                    userName: qSet.string(forColumn: cuser_name),
+                    time: Int(qSet.longLongInt(forColumn: ctime)),
+                    type: selectedType
+                ))
             }
-            db.close()
-            return illusts
         } catch {
             print("db query error === \(error.localizedDescription)")
         }
-        return []
+        return illusts.shuffled()
     }
 
-    static func fetchIllusts(db: FMDatabase) -> [AppWidgetIllust] {
-        var illusts = [AppWidgetIllust]()
-        do {
-            let qSet = try db.executeQuery("select * from glanceillustpersist", values: nil)
-            while qSet.next() {
-                let id = qSet.int(forColumn: cid)
-                let illustId = qSet.int(forColumn: cillust_id)
-                let userId = qSet.int(forColumn: cuser_id)
-                let pictureId = qSet.string(forColumn: cpicture_url)
-                let title = qSet.string(forColumn: ctitle)
-                let userName = qSet.string(forColumn: cuser_name)
-                let time = qSet.int(forColumn: ctime)
-                let type = qSet.string(forColumn: ctype)
-                let largeUrl = qSet.string(forColumn: clarge_url)
-                let originalUrl = qSet.string(forColumn: coriginal_url)
-                let illust = AppWidgetIllust(id: Int(cid)!, illustId: Int(illustId), userId: Int(userId), pictureUrl: pictureId!, largeUrl: largeUrl, originalUrl: originalUrl, title: title!, userName: userName!, time: Int(exactly: time)!, type: type!)
-                illusts.append(illust)
-                print("db === \(illust)")
-            }
-        } catch {}
-        return illusts
-    }
-
-    static func groupDB() -> FMDatabase? {
-        let fileManager = FileManager.default
-        let dummyDatabaseName = "glanceillustpersist.db"
-        if let directory = fileManager.containerURL(forSecurityApplicationGroupIdentifier: "group.com.duke486.pixez.ipad") {
-            let newDirectory = directory.appendingPathComponent("DB")
-            try? fileManager.createDirectory(at: newDirectory, withIntermediateDirectories: false, attributes: nil)
-            let url = newDirectory.appendingPathComponent(dummyDatabaseName)
-            return FMDatabase(path: url.path)
-        }
-        return nil
+    private static func containerURL() -> URL? {
+        FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.duke486.pixez.ipad")
     }
 
     static func illustFolder() -> URL? {
-        let fileManager = FileManager.default
-        if let directory = fileManager.containerURL(forSecurityApplicationGroupIdentifier: "group.com.duke486.pixez.ipad") {
-            let newDirectory = directory.appendingPathComponent("Illusts")
-            try? fileManager.createDirectory(at: newDirectory, withIntermediateDirectories: false, attributes: nil)
-            return newDirectory
-        }
-        return nil
+        containerURL()?.appendingPathComponent("Illusts", isDirectory: true)
     }
 }

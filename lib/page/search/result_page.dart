@@ -52,7 +52,7 @@ class _ResultPageState extends State<ResultPage> {
       child: Scaffold(
         appBar: AppBar(
           elevation: 0.0,
-          centerTitle: usesIPadLayout(context) ? true : null,
+          centerTitle: usesAppleControls(context) ? true : null,
                   title: IPadPageTabs(maxWidth: 520, tabs: TabBar(
               indicatorSize: TabBarIndicatorSize.label,
               onTap: (i) {

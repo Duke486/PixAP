@@ -36,6 +36,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 part 'user_setting.g.dart';
 
+enum NsfwDisplayMode { mask, replace, show }
+
 class UserSetting = _UserSetting with _$UserSetting;
 
 abstract class _UserSetting with Store {
@@ -53,7 +55,6 @@ abstract class _UserSetting with Store {
   static const String H_CROSS_COUNT_KEY = "h_cross_count";
   static const String PICTURE_QUALITY_KEY = "picture_quality";
   static const String MANGA_QUALITY_KEY = "manga_quality";
-  static const String IS_BANGS_KEY = "is_bangs";
   static const String IS_AMOLED_KEY = "is_amoled";
   static const String IS_TOPMODE_KEY = "is_top_mode";
   static const String STORE_PATH_KEY = "save_store";
@@ -90,6 +91,7 @@ abstract class _UserSetting with Store {
   static const String USE_DYNAMIC_COLOR_KEY = "use_dynamic_color";
   static const String SEED_COLOR_KEY = "seed_color";
   static const String SWIPE_CHANGE_ARTWORK_KEY = "swipe_change_artwork";
+  static const String ARTWORK_RIGHT_EDGE_BACK_KEY = "artwork_right_edge_back";
   static const String USE_SAUNCE_NAO_WEBVIEW = "use_sauce_nao_webview";
   static const String FEED_AI_BADGE_KEY = "feed_ai_badge";
   static const String IGNORE_UPDATE_VERSION_KEY = "ignore_update_version";
@@ -99,6 +101,9 @@ abstract class _UserSetting with Store {
   static const String AUTO_TAG_WHEN_STAR_KEY = "auto_tag_when_star";
   static const String HAPTIC_FEEDBACK_KEY = "haptic_feedback";
   static const String MINIMIZE_ON_EXIT_KEY = "minimize_on_exit";
+  static const _defaultFeedPreviewQuality = 1;
+  static const _defaultDetailQuality = 2;
+  static const _defaultZoomQuality = 1;
 
   @observable
   bool minimizeOnExit = true;
@@ -133,16 +138,15 @@ abstract class _UserSetting with Store {
   bool isTopMode = false;
   @observable
   String? storePath = null;
+
   @observable
-  bool isBangs = false;
+  int zoomQuality = _defaultZoomQuality;
   @observable
-  int zoomQuality = 0;
+  int feedPreviewQuality = _defaultFeedPreviewQuality;
   @observable
-  int feedPreviewQuality = 0;
+  int pictureQuality = _defaultDetailQuality;
   @observable
-  int pictureQuality = 0;
-  @observable
-  int mangaQuality = 0;
+  int mangaQuality = _defaultDetailQuality;
   @observable
   int languageNum = defaultLanguageIndex;
   @observable
@@ -160,7 +164,7 @@ abstract class _UserSetting with Store {
   @observable
   bool overSanityLevelFolder = false;
   @observable
-  bool hIsNotAllow = false;
+  NsfwDisplayMode nsfwDisplayMode = NsfwDisplayMode.mask;
   @observable
   bool followAfterStar = false;
   @observable
@@ -199,6 +203,8 @@ abstract class _UserSetting with Store {
   int themeInitState = 0;
   @observable
   bool swipeChangeArtwork = false;
+  @observable
+  bool artworkRightEdgeBack = true;
   @observable
   bool useSaunceNaoWebview = false;
   @observable
@@ -311,7 +317,7 @@ abstract class _UserSetting with Store {
   Color seedColor = Colors.blue[400]!;
 
   @observable
-  bool useDynamicColor = true;
+  bool useDynamicColor = false;
 
   @observable
   ThemeMode themeMode = ThemeMode.system;
@@ -328,11 +334,6 @@ abstract class _UserSetting with Store {
     this.themeMode = ThemeMode.values[themeMode];
   }
 
-  @action
-  setIsBangs(bool v) async {
-    await prefs.setBool(IS_BANGS_KEY, v);
-    isBangs = v;
-  }
 
   @action
   setIsAMOLED(bool v) async {
@@ -390,6 +391,12 @@ abstract class _UserSetting with Store {
   }
 
   @action
+  Future<void> setArtworkRightEdgeBack(bool value) async {
+    await prefs.setBool(ARTWORK_RIGHT_EDGE_BACK_KEY, value);
+    artworkRightEdgeBack = value;
+  }
+
+  @action
   setUseSaunceNaoWebview(bool v) async {
     await prefs.setBool(USE_SAUNCE_NAO_WEBVIEW, v);
     useSaunceNaoWebview = v;
@@ -427,7 +434,7 @@ abstract class _UserSetting with Store {
         break;
       }
     }
-    useDynamicColor = prefs.getBool(USE_DYNAMIC_COLOR_KEY) ?? true;
+    useDynamicColor = prefs.getBool(USE_DYNAMIC_COLOR_KEY) ?? false;
     var colors = prefs.getInt(SEED_COLOR_KEY);
     if (colors != null) {
       try {
@@ -514,7 +521,11 @@ abstract class _UserSetting with Store {
   Future<void> _restoreWelcomePageType() async {
     final storedType = prefs.getString(WELCOME_PAGE_TYPE_KEY);
     if (storedType != null && storedType.isNotEmpty) {
-      welcomePageType = WelcomePageType.fromCode(storedType);
+      welcomePageType = WelcomePageType.fromCode(storedType)
+          .normalizeFor(WelcomePagePlatform.material);
+      if (welcomePageType.code != storedType) {
+        await prefs.setString(WELCOME_PAGE_TYPE_KEY, welcomePageType.code);
+      }
       return;
     }
 
@@ -522,7 +533,7 @@ abstract class _UserSetting with Store {
     welcomePageType = welcomePageTypeFromLegacyIndex(
       legacyValue,
       legacyLayout: _legacyWelcomePageLayout(),
-    );
+    ).normalizeFor(WelcomePagePlatform.material);
     await prefs.setString(WELCOME_PAGE_TYPE_KEY, welcomePageType.code);
     if (legacyValue != null) {
       await prefs.remove(LEGACY_WELCOME_PAGE_NUM_KEY);
@@ -543,13 +554,21 @@ abstract class _UserSetting with Store {
   @action
   Future<void> init() async {
     prefs = await Prefer.getInstance();
-    zoomQuality = prefs.getInt(ZOOM_QUALITY_KEY) ?? 0;
-    feedPreviewQuality = prefs.getInt(FEED_PREVIEW_QUALITY) ?? 0;
+    zoomQuality = prefs.getInt(ZOOM_QUALITY_KEY) ?? _defaultZoomQuality;
+    feedPreviewQuality = prefs.getInt(FEED_PREVIEW_QUALITY) ?? _defaultFeedPreviewQuality;
     singleFolder = prefs.getBool(SINGLE_FOLDER_KEY) ?? false;
-    hIsNotAllow = prefs.getBool('h_is_not_allow') ?? false;
-    pictureQuality = prefs.getInt(PICTURE_QUALITY_KEY) ?? 0;
-    mangaQuality = prefs.getInt(MANGA_QUALITY_KEY) ?? 0;
-    isBangs = prefs.getBool(IS_BANGS_KEY) ?? false;
+    final savedMode = prefs.getString('nsfw_display_mode');
+    nsfwDisplayMode = NsfwDisplayMode.values.firstWhere(
+      (mode) => mode.name == savedMode,
+      orElse: () => switch (prefs.getBool('h_is_not_allow')) {
+        true => NsfwDisplayMode.replace,
+        false => NsfwDisplayMode.show,
+        null => NsfwDisplayMode.mask,
+      },
+    );
+    pictureQuality = prefs.getInt(PICTURE_QUALITY_KEY) ?? _defaultDetailQuality;
+    mangaQuality = prefs.getInt(MANGA_QUALITY_KEY) ?? _defaultDetailQuality;
+
     isHelplessWay = prefs.getBool(ISHELPLESSWAY_KEY);
     maxRunningTask = prefs.getInt(MAX_RUNNING_TASK_KEY) ?? 2;
     isReturnAgainToExit = prefs.getBool(IS_RETURN_AGAIN_TO_EXIT_KEY) ?? false;
@@ -574,6 +593,7 @@ abstract class _UserSetting with Store {
     defaultPrivateLike = prefs.getBool(DEFAULT_PRIVATE_LIKE_KEY) ?? false;
     longPressSaveConfirm = prefs.getBool(LONG_PRESS_SAVE_CONFIRM_KEY) ?? false;
     swipeChangeArtwork = prefs.getBool(SWIPE_CHANGE_ARTWORK_KEY) ?? true;
+    artworkRightEdgeBack = prefs.getBool(ARTWORK_RIGHT_EDGE_BACK_KEY) ?? true;
     useSaunceNaoWebview = prefs.getBool(USE_SAUNCE_NAO_WEBVIEW) ?? false;
     dragStartX = prefs.getDouble(DRAG_START_X_KEY) ?? 0;
     autoTagWhenStar = prefs.getBool(AUTO_TAG_WHEN_STAR_KEY) ?? false;
@@ -636,9 +656,10 @@ abstract class _UserSetting with Store {
 
   @action
   Future<void> setWelcomePageType(WelcomePageType value) async {
-    await prefs.setString(WELCOME_PAGE_TYPE_KEY, value.code);
+    final page = value.normalizeFor(WelcomePagePlatform.material);
+    await prefs.setString(WELCOME_PAGE_TYPE_KEY, page.code);
     await prefs.remove(LEGACY_WELCOME_PAGE_NUM_KEY);
-    welcomePageType = value;
+    welcomePageType = page;
   }
 
   @action
@@ -647,9 +668,9 @@ abstract class _UserSetting with Store {
   }
 
   @action
-  setHIsNotAllow(bool value) async {
-    await prefs.setBool('h_is_not_allow', value);
-    hIsNotAllow = value;
+  setNsfwDisplayMode(NsfwDisplayMode value) async {
+    nsfwDisplayMode = value;
+    await prefs.setString('nsfw_display_mode', value.name);
   }
 
   @action

@@ -27,7 +27,7 @@ class _SearchBarState extends State<SearchBar> {
 
   @override
   Widget build(BuildContext context) {
-    if (usesIPadLayout(context)) {
+    if (usesAppleControls(context)) {
       return SizedBox(height: 48, child: Row(children: [
         Expanded(child: InkWell(onTap: () => Navigator.of(context).push(
           MaterialPageRoute(builder: (_) => SearchSuggestionPage())),

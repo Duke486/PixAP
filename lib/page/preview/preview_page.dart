@@ -1,3 +1,4 @@
+import 'package:pixez/component/glass_form_control.dart';
 /*
  * Copyright (C) 2020. by perol_notsf, All rights reserved
  *
@@ -22,11 +23,16 @@ import 'package:easy_refresh/easy_refresh.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:pixez/component/painter_avatar.dart';
+import 'package:pixez/component/pixez_default_header.dart';
 import 'package:pixez/component/pixiv_image.dart';
+import 'package:pixez/er/prefer.dart';
 import 'package:pixez/i18n.dart';
 import 'package:pixez/lighting/lighting_store.dart';
 import 'package:pixez/models/illust.dart';
+import 'package:pixez/models/recommend.dart';
 import 'package:pixez/network/api_client.dart';
+import 'package:pixez/page/hello/recom/home_feed_refresh.dart';
+import 'package:pixez/page/hello/setting/demo_mode.dart';
 import 'package:pixez/page/login/login_page.dart';
 import 'package:waterfall_flow/waterfall_flow.dart';
 
@@ -110,30 +116,18 @@ class _LoginButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    final blue = dark ? const Color(0xFF1D8FBA) : const Color(0xFF70D8F7);
-    return IPadSurface(
-      tint: blue.withValues(alpha: .69),
-      child: TextButton(
-        style: TextButton.styleFrom(
-          minimumSize: const Size(112, 48),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          backgroundColor: usesIPadLayout(context) ? null : blue,
-          foregroundColor: dark ? Colors.white : const Color(0xFF07394A),
-        ),
-        onPressed: () => Navigator.of(
-          context,
-        ).push(MaterialPageRoute(builder: (_) => LoginPage())),
-        child: Text(I18n.of(context).login),
-      ),
-    );
+    return ConstrainedBox(constraints: const BoxConstraints(minWidth: 112, minHeight: 48),
+      child: GlassActionButton(prominent: true, label: I18n.of(context).login,
+        onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => LoginPage()))));
+
   }
 }
 
 class PreviewPage extends StatefulWidget {
-  const PreviewPage({super.key, this.showLoginPrompt = false});
+  const PreviewPage({super.key, this.showLoginPrompt = false, this.cacheHome = false});
 
   final bool showLoginPrompt;
+  final bool cacheHome;
 
   @override
   _PreviewPageState createState() => _PreviewPageState();
@@ -146,23 +140,43 @@ class _PreviewPageState extends State<PreviewPage>
   @override
   bool get wantKeepAlive => widget.showLoginPrompt;
   late LightingStore _lightingStore;
-  EasyRefreshController _easyRefreshController = EasyRefreshController(
-    controlFinishLoad: true,
-    controlFinishRefresh: true,
-  );
+  late final EasyRefreshController _easyRefreshController;
+  HomeFeedRefresh<Recommend>? _homeRefresh;
 
   @override
   void initState() {
+    super.initState();
+    _easyRefreshController = EasyRefreshController(
+      controlFinishLoad: true,
+      controlFinishRefresh: !widget.cacheHome,
+    );
     _lightingStore = LightingStore(
       ApiSource(futureGet: () => apiClient.walkthroughIllusts()),
     );
     _lightingStore.easyRefreshController = _easyRefreshController;
-    super.initState();
-    _lightingStore.fetch();
+    if (widget.cacheHome) {
+      final refresh = HomeFeedRefresh<Recommend>(
+        cacheKey: DemoMode.active ? null : 'home_feed.v1.guest.${Prefer.getInt("language_num")}',
+        decode: Recommend.fromJson,
+        encode: (snapshot) => snapshot.toJson(),
+        fetch: (_) => fetchHomeFeedPart(() => apiClient.walkthroughIllusts(force: true), Recommend.fromJson),
+        show: (snapshot, {required fromNetwork}) {
+          _lightingStore.replaceRecommendations(snapshot);
+          _easyRefreshController.resetFooter();
+        },
+      )..restore();
+      _homeRefresh = refresh;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) unawaited(refresh.refresh(manual: false));
+      });
+    } else {
+      _lightingStore.fetch();
+    }
   }
 
   @override
   void dispose() {
+    _homeRefresh?.dispose();
     _easyRefreshController.dispose();
     super.dispose();
   }
@@ -170,18 +184,24 @@ class _PreviewPageState extends State<PreviewPage>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    return Observer(
+    final refresh = _homeRefresh;
+    final content = Observer(
       builder: (_) {
         final tablet = usesIPadLayout(context);
         final columns = tablet
             ? (MediaQuery.sizeOf(context).width / 220).floor().clamp(2, 8)
             : 2;
-        final spacing = tablet ? 8.0 : 0.0;
+        final styled = usesAppleControls(context);
+        final spacing = styled ? 8.0 : 0.0;
         final items = _lightingStore.iStores.toList(growable: false);
         return SafeArea(
           child: EasyRefresh(
             controller: _easyRefreshController,
-            onRefresh: () => _lightingStore.fetch(url: "walkthrough"),
+            header: refresh == null ? null : PixezDefault.header(context),
+            onRefresh: refresh == null
+                ? () => _lightingStore.fetch(url: 'walkthrough')
+                : () async => await refresh.refresh(manual: true)
+                    ? IndicatorResult.success : IndicatorResult.fail,
             onLoad: () => _lightingStore.fetchNext(),
             child: CustomScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
@@ -259,9 +279,9 @@ class _PreviewPageState extends State<PreviewPage>
                         );
                       },
                       child: Card(
-                        clipBehavior: tablet ? Clip.antiAlias : Clip.none,
-                        elevation: tablet ? 0 : null,
-                        child: tablet
+                        clipBehavior: styled ? Clip.antiAlias : Clip.none,
+                        elevation: styled ? 0 : null,
+                        child: styled
                             ? Column(
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
@@ -321,6 +341,7 @@ class _PreviewPageState extends State<PreviewPage>
         );
       },
     );
+    return refresh == null ? content : HomeFeedOverlay(refresh: refresh, child: content);
   }
 }
 
@@ -385,23 +406,11 @@ class _GuestHomeLoginPromptState extends State<GuestHomeLoginPrompt>
                 spacing: 12,
                 children: [
                   Flexible(
-                    child: IPadSurface(
-                      child: TextButton(
-                        style: TextButton.styleFrom(
-                          minimumSize: const Size(112, 48),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 8,
-                          ),
-                        ),
+                    child: ConstrainedBox(constraints: const BoxConstraints(minWidth: 112, minHeight: 48),
+                      child: GlassActionButton(
                         onPressed: _seconds == 0 ? widget.onLater : null,
-                        child: Text(
-                          _seconds == 0
-                              ? strings.login_later
-                              : '${strings.login_later} ($_seconds)',
-                        ),
-                      ),
-                    ),
+                        label: _seconds == 0 ? strings.login_later : '${strings.login_later} ($_seconds)',
+                      )),
                   ),
                   const Flexible(child: _LoginButton()),
                 ],

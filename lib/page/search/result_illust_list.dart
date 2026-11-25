@@ -1,3 +1,4 @@
+import 'package:pixez/component/glass_form_control.dart';
 /*
  * Copyright (C) 2020. by perol_notsf, All rights reserved
  *
@@ -253,7 +254,7 @@ class _ResultIllustListState extends State<ResultIllustList> {
   }
 
   Widget _buildDateRangeButton() {
-    return PopupMenuButton<SearchDatePreset>(
+    return glassPopup(context, PopupMenuButton<SearchDatePreset>(
       child: Padding(
         padding: const EdgeInsets.all(4.0),
         child: Icon(
@@ -308,7 +309,7 @@ class _ResultIllustListState extends State<ResultIllustList> {
           );
         }).toList();
       },
-    );
+    ), 'calendar', active: _dateTimeRange != null);
   }
 
   DateTimeRange? _dateTimeRange;
@@ -399,7 +400,7 @@ class _ResultIllustListState extends State<ResultIllustList> {
   int _starValue = 0;
 
   Widget _buildPremiumStar() {
-    return PopupMenuButton<List<int>>(
+    return glassPopup(context, PopupMenuButton<List<int>>(
       initialValue: _bookmarkNumList,
       child: Icon(
         Icons.format_list_numbered,
@@ -440,11 +441,11 @@ class _ResultIllustListState extends State<ResultIllustList> {
           }
         }).toList();
       },
-    );
+    ), 'list.number');
   }
 
   Widget _buildStar() {
-    return PopupMenuButton(
+    return glassPopup(context, PopupMenuButton(
       initialValue: _starValue,
       child: Icon(
         Icons.sort,
@@ -478,7 +479,7 @@ class _ResultIllustListState extends State<ResultIllustList> {
           }
         }).toList();
       },
-    );
+    ), 'line.3.horizontal.decrease');
   }
 }
 
@@ -653,7 +654,7 @@ class _ResultIllustSortWidgetState extends State<ResultIllustSortWidget> {
                     ],
                   ),
                 ),
-                SwitchListTile(
+                glassSwitchTile(SwitchListTile(
                   value: searchAIType != 1,
                   onChanged: (v) {
                     setState(() {
@@ -661,8 +662,8 @@ class _ResultIllustSortWidgetState extends State<ResultIllustSortWidget> {
                     });
                   },
                   title: Text(I18n.of(context).ai_generated),
-                ),
-                SwitchListTile(
+                )),
+                glassSwitchTile(SwitchListTile(
                   value: recordRememberCurrentSelection,
                   onChanged: (v) async {
                     await Prefer.setBool(rememberKey, v);
@@ -671,7 +672,7 @@ class _ResultIllustSortWidgetState extends State<ResultIllustSortWidget> {
                     });
                   },
                   title: Text(I18n.of(context).remember_current_selections),
-                ),
+                )),
                 Container(
                   height: 16,
                 )

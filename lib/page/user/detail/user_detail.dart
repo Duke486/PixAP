@@ -203,7 +203,7 @@ class _UserDetailPageState extends State<UserDetailPage> {
           SliverOverlapInjector(
             handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
           ),
-        if (usesIPadLayout(context))
+        if (usesAppleControls(context))
           SliverToBoxAdapter(
             child: Center(
               child: ConstrainedBox(

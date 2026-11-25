@@ -128,9 +128,10 @@ class SettingPageState extends State<SettingPage> {
   Widget _menu(BuildContext context) {
     return Scaffold(
       body: SafeArea(
+        bottom: !isIPhone,
         child: SingleChildScrollView(
           child: Padding(
-            padding: const EdgeInsets.all(8.0),
+            padding: EdgeInsets.fromLTRB(8, 8, 8, 8 + (isIPhone ? MediaQuery.paddingOf(context).bottom : 0)),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
@@ -398,13 +399,7 @@ Column(
     }
   }
 
-  void cleanGlanceData() async {
-    GlanceIllustPersistProvider glanceIllustPersistProvider =
-        GlanceIllustPersistProvider();
-    await glanceIllustPersistProvider.open();
-    await glanceIllustPersistProvider.deleteAll();
-    await glanceIllustPersistProvider.close();
-  }
+  Future<void> cleanGlanceData() => GlanceIllustPersistProvider.clearCache();
 
   bool _needBoardSection = false;
   List<BoardInfo> _boardList = [];

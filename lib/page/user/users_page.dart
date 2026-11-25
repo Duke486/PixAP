@@ -1,3 +1,4 @@
+import 'package:pixez/component/glass_form_control.dart';
 import 'package:pixez/page/hello/hello_page.dart';
 /*
  * Copyright (C) 2020. by perol_notsf, All rights reserved
@@ -230,9 +231,7 @@ class _UsersPageState extends State<UsersPage> with TickerProviderStateMixin {
   }
 
   Widget _buildBody(BuildContext context) {
-    return Container(
-      child: Scaffold(
-        body: NestedScrollView(
+    final scrollView = NestedScrollView(
           controller: _scrollController,
           body: TabBarView(
             controller: _tabController,
@@ -264,15 +263,47 @@ class _UsersPageState extends State<UsersPage> with TickerProviderStateMixin {
               (BuildContext context, bool? innerBoxIsScrolled) {
                 return _HeaderSlivers(innerBoxIsScrolled, context);
               },
-        ),
-      ),
     );
+    if (!isIPhone) return Scaffold(body: scrollView);
+    return Scaffold(body: Stack(children: [
+      Positioned.fill(child: scrollView),
+      Positioned(top: 0, left: 0, right: 0,
+        child: Stack(children: [
+          const Positioned.fill(child: IgnorePointer(child: ProgressiveToolbarBlur())),
+          SafeArea(bottom: false, child: SizedBox(height: 46,
+            child: Row(children: [
+              const SizedBox(width: 56, child: CommonBackArea()),
+              const Spacer(),
+              _shareButton(),
+              const SizedBox(width: 6),
+              SizedBox.square(dimension: 44, child: _buildPopMenu(context)),
+              const SizedBox(width: 8),
+            ]))),
+        ])),
+    ]));
   }
 
+  Widget _shareButton() => Builder(builder: (buttonContext) {
+    final label = I18n.of(buttonContext).share;
+    void share() {
+      final box = buttonContext.findRenderObject() as RenderBox;
+      SharePlus.instance.share(ShareParams(
+        text: 'https://www.pixiv.net/users/${widget.id}',
+        sharePositionOrigin: box.localToGlobal(Offset.zero) & box.size,
+      ));
+    }
+    return SizedBox.square(dimension: 44, child: usesNativeFormControls
+      ? GlassFormControl('action', {
+          'iconOnly': true, 'label': label, 'symbol': 'square.and.arrow.up',
+          'dark': Theme.of(buttonContext).brightness == Brightness.dark,
+        }, (_) => share())
+      : IconButton(tooltip: label, icon: const Icon(Icons.share), onPressed: share));
+  });
+
   List<Widget> _HeaderSlivers(bool? innerBoxIsScrolled, BuildContext context) {
-    final tablet = usesIPadLayout(context);
+    final tablet = usesAppleControls(context);
     final landscapeTablet =
-        tablet && MediaQuery.orientationOf(context) == Orientation.landscape;
+        usesIPadLayout(context) && MediaQuery.orientationOf(context) == Orientation.landscape;
     final profileConstraints = BoxConstraints(
       maxWidth: landscapeTablet ? 700 : (tablet ? 780 : double.infinity),
     );
@@ -308,29 +339,14 @@ class _UsersPageState extends State<UsersPage> with TickerProviderStateMixin {
                     (tablet ? 177 : 205) -
                     MediaQuery.of(context).padding.top
               : (tablet ? 272 : 300),
-          leading: IPadSurface(child: CommonBackArea()),
-          actions: <Widget>[
-            Builder(
-              builder: (context) {
-                return IconButton(
-                  icon: Icon(Icons.share),
-                  onPressed: () {
-                    final box = context.findRenderObject() as RenderBox?;
-                    final pos = box != null
-                        ? box.localToGlobal(Offset.zero) & box.size
-                        : null;
-                    final link = "https://www.pixiv.net/users/${widget.id}";
-                    SharePlus.instance.share(
-                      ShareParams(text: link, sharePositionOrigin: pos),
-                    );
-                  },
-                );
-              },
-            ),
-            IPadSurface(child: _buildPopMenu(context)),
+          automaticallyImplyLeading: !isIPhone,
+          leading: isIPhone ? null : IPadSurface(child: CommonBackArea()),
+          actions: isIPhone ? const <Widget>[] : <Widget>[
+            _shareButton(),
+            SizedBox(width: 44, child: _buildPopMenu(context)),
           ],
           flexibleSpace: _profileToolbar(
-            context, tablet, compactHeight, tabs, FlexibleSpaceBar(
+            context, tablet && !isIPhone, compactHeight, tabs, FlexibleSpaceBar(
             collapseMode: CollapseMode.pin,
             background: Container(
               color: Theme.of(context).cardColor,
@@ -346,7 +362,7 @@ class _UsersPageState extends State<UsersPage> with TickerProviderStateMixin {
                     )
                   else
                     _buildBackground(context),
-                  _buildFakeBg(context),
+                  if (!isIPhone) _buildFakeBg(context),
                   Align(
                     alignment: Alignment.bottomCenter,
                     child: Column(
@@ -386,7 +402,7 @@ class _UsersPageState extends State<UsersPage> with TickerProviderStateMixin {
               ),
             ),
           )),
-          bottom: tablet ? null : ColoredTabBar(Theme.of(context).cardColor, tabs),
+          bottom: isIPhone ? PreferredSize(preferredSize: const Size.fromHeight(compactHeight), child: SizedBox(height: compactHeight, child: Center(child: IPadPageTabs(maxWidth: 640, tabs: tabs)))) : tablet ? null : ColoredTabBar(Theme.of(context).cardColor, tabs),
         ),
       ),
       // SliverPersistentHeader(
@@ -548,8 +564,8 @@ class _UsersPageState extends State<UsersPage> with TickerProviderStateMixin {
     );
   }
 
-  PopupMenuButton<int> _buildPopMenu(BuildContext context) {
-    return PopupMenuButton<int>(
+  Widget _buildPopMenu(BuildContext context) {
+    return glassPopup(context, PopupMenuButton<int>(
       onSelected: (index) async {
         switch (index) {
           case 0:
@@ -662,7 +678,7 @@ class _UsersPageState extends State<UsersPage> with TickerProviderStateMixin {
           ),
         ];
       },
-    );
+    ), 'ellipsis', glass: true);
   }
 
   Widget _buildFakeNameFollow(BuildContext context) {
@@ -988,7 +1004,7 @@ class ColoredTabBar extends Container implements PreferredSizeWidget {
   Size get preferredSize => tabBar.preferredSize;
 
   @override
-  Widget build(BuildContext context) => usesIPadLayout(context)
+  Widget build(BuildContext context) => usesAppleControls(context)
       ? Padding(padding: const EdgeInsets.symmetric(vertical: 5), child: IPadPageTabs(maxWidth: 640, tabs: tabBar))
       : Container(color: color, child: tabBar);
 }

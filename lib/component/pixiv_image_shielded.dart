@@ -1,14 +1,7 @@
+import 'package:pixez/component/nsfw_artwork.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:pixez/component/pixiv_image.dart';
-import 'package:pixez/constants.dart';
-import 'package:pixez/main.dart';
 import 'package:pixez/models/illust.dart';
-
-final hIsNotAllowedImage = Container(
-  color: Colors.white,
-  child: Image.asset(Constants.no_h),
-);
 
 class PixivImageShielded extends StatefulWidget {
   final String url;
@@ -38,30 +31,12 @@ class PixivImageShielded extends StatefulWidget {
 }
 
 class _PixivImageShieldedState extends State<PixivImageShielded> {
-  late PixivImage? _pixivImage = null;
   @override
-  Widget build(BuildContext context) {
-    return Observer(
-      builder: (_) {
-        if (userSetting.hIsNotAllow) {
-          if (widget.tags.any((tag) => tag.name.startsWith('R-18'))) {
-            return hIsNotAllowedImage;
-          }
-        }
-        if (_pixivImage == null) {
-          _pixivImage = PixivImage(
-            widget.url,
-            placeWidget: widget.placeWidget,
-            fade: widget.fade,
-            fit: widget.fit,
-            enableMemoryCache: widget.enableMemoryCache,
-            height: widget.height,
-            width: widget.width,
-            host: widget.host,
-          );
-        }
-        return _pixivImage ?? Container();
-      },
-    );
-  }
+  Widget build(BuildContext context) => NsfwMedia(
+    restricted: widget.tags.any((tag) => tag.name.startsWith('R-18')),
+    identity: widget.url,
+    child: PixivImage(widget.url, placeWidget: widget.placeWidget, fade: widget.fade,
+      fit: widget.fit, enableMemoryCache: widget.enableMemoryCache, height: widget.height,
+      width: widget.width, host: widget.host),
+  );
 }

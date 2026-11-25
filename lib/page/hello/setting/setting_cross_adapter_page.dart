@@ -1,3 +1,4 @@
+import 'package:pixez/component/glass_form_control.dart';
 import 'dart:math';
 
 import 'package:material_ui/material_ui.dart';
@@ -57,7 +58,7 @@ class _SettingCrossAdpaterPageState extends State<SettingCrossAdpaterPage> {
           child: CustomScrollView(
             slivers: [
               SliverToBoxAdapter(
-                child: Slider(
+                child: glassSlider(Slider(
                   value: _sliderValue,
                   min: 50,
                   max: 2160,
@@ -67,7 +68,7 @@ class _SettingCrossAdpaterPageState extends State<SettingCrossAdpaterPage> {
                     });
                   },
                   onChangeEnd: (value) async {},
-                ),
+                )),
               ),
               SliverToBoxAdapter(
                 child: Padding(

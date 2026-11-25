@@ -211,7 +211,7 @@ class IllustDetailBody extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: Center(
-                child: usesIPadLayout(context)
+                child: usesAppleControls(context)
                     ? ArtworkCommentButton(id: illust.id)
                     : TextButton(
                         child: Text(

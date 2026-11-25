@@ -8,9 +8,9 @@ enum NetworkMode {
   final String code;
 
   static const List<NetworkMode> selectableValues = [
-    NetworkMode.ech,
-    NetworkMode.compat,
     NetworkMode.standard,
+    NetworkMode.compat,
+    NetworkMode.ech,
   ];
 
   static NetworkMode fromCode(String? code) {

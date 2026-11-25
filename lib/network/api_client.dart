@@ -190,9 +190,10 @@ class ApiClient {
     );
   }
 
-  Future<Response> getRecommend() async {
+  Future<Response> getRecommend({bool force = false}) async {
     return httpClient.get(
       "/v1/illust/recommended?filter=for_ios&include_ranking_label=true",
+      options: force ? options.copyWith(policy: CachePolicy.refresh).toOptions() : null,
     );
   }
 
@@ -644,8 +645,9 @@ class ApiClient {
     return IllustBookmarkTagsResponse.fromJson(result.data);
   }
 
-  Future<Response> walkthroughIllusts() async {
-    final result = await httpClient.get('/v1/walkthrough/illusts');
+  Future<Response> walkthroughIllusts({bool force = false}) async {
+    final result = await httpClient.get('/v1/walkthrough/illusts',
+      options: force ? options.copyWith(policy: CachePolicy.refresh).toOptions() : null);
     return result;
   }
 

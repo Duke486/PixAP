@@ -1,3 +1,4 @@
+import 'package:pixez/component/nsfw_artwork.dart';
 import 'artwork_edge_back.dart';
 import 'package:pixez/component/ipad_surface.dart';
 /*
@@ -84,7 +85,7 @@ class _IllustLightingPageState extends State<IllustLightingPage> {
       case 0:
         MediaQueryData mediaQuery = MediaQuery.of(context);
         final ori = mediaQuery.size.width > mediaQuery.size.height;
-        if (ori)
+        if (ori && !isIPhone)
           return _buildRow();
         else
           return _buildVertical();
@@ -215,6 +216,7 @@ class _IllustVerticalPageState extends State<IllustVerticalPage>
       children: [
         Container(height: MediaQuery.of(context).padding.top),
         Container(
+          padding: EdgeInsetsDirectional.only(end: isIPhone ? 8 : 0),
           child: Row(
             mainAxisSize: MainAxisSize.max,
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -443,7 +445,7 @@ class _IllustVerticalPageState extends State<IllustVerticalPage>
       child: CustomScrollView(
         controller: _scrollController,
         slivers: [
-          if (userSetting.isBangs || ((data.width / data.height) > 5))
+          if ((data.width / data.height) > 5)
             SliverToBoxAdapter(
               child: Container(height: MediaQuery.of(context).padding.top),
             ),
@@ -515,10 +517,11 @@ class _IllustVerticalPageState extends State<IllustVerticalPage>
                   saveStore.saveImage(illust);
                   await _autoBookmarkAfterSave(illust);
                 },
-                child: PixivImage(
+                child: NsfwArtwork.preview(_aboutStore.illusts[index], buildPreview: (mask) => PixivImage(
                   _aboutStore.illusts[index].imageUrls.squareMedium,
                   enableMemoryCache: false,
-                ),
+                  loadedImageBuilder: mask,
+                )),
               );
             }, childCount: _aboutStore.illusts.length),
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -539,7 +542,7 @@ class _IllustVerticalPageState extends State<IllustVerticalPage>
         SliverToBoxAdapter(
           child: NullHero(
             tag: widget.heroString,
-            child: UgoiraLoader(id: widget.id, illusts: data),
+            child: NsfwArtwork(data, child: UgoiraLoader(id: widget.id, illusts: data)),
           ),
         ),
       if (data.type != "ugoira")
@@ -568,7 +571,7 @@ class _IllustVerticalPageState extends State<IllustVerticalPage>
                         ),
                       );
                     },
-                    child: NullHero(
+                    child: NsfwArtwork(data, child: NullHero(
                       tag: widget.heroString,
                       child: PixivImage(
                         url,
@@ -591,7 +594,7 @@ class _IllustVerticalPageState extends State<IllustVerticalPage>
                               )
                             : placeWidget,
                       ),
-                    ),
+                    )),
                   );
                 }, childCount: 1),
               )
@@ -614,7 +617,7 @@ class _IllustVerticalPageState extends State<IllustVerticalPage>
                         ),
                       );
                     },
-                    child: _buildIllustsItem(index, data, height),
+                    child: NsfwArtwork(data, page: index, child: _buildIllustsItem(index, data, height)),
                   );
                 }, childCount: data.metaPages.length),
               ),
@@ -1079,14 +1082,14 @@ class _IllustVerticalPageState extends State<IllustVerticalPage>
                                 },
                                 child: Stack(
                                   children: [
-                                    PixivImage(
+                                    NsfwArtwork(illust, page: index, child: PixivImage(
                                       data.imageUrls!.squareMedium,
                                       placeWidget: Container(
                                         child: Center(
                                           child: Text(index.toString()),
                                         ),
                                       ),
-                                    ),
+                                    )),
                                     Align(
                                       alignment: Alignment.bottomRight,
                                       child: Visibility(

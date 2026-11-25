@@ -14,6 +14,9 @@
  *
  */
 
+import 'dart:math' as math;
+import 'dart:ui' show lerpDouble;
+
 import 'package:bot_toast/bot_toast.dart';
 import 'package:pixez/component/ipad_surface.dart';
 import 'package:pixez/component/progressive_toolbar_blur.dart';
@@ -31,7 +34,10 @@ import 'package:pixez/page/user/users_page.dart';
 import 'package:pixez/utils/haptic_util.dart';
 
 class SearchSuggestionPage extends StatefulWidget {
-  static const inlineToolbarHeight = 56.0;
+  static const _inputHeight = 48.0;
+  static const _topGap = 8.0;
+  static const _titleGap = 12.0;
+  static const inlineToolbarHeight = _inputHeight + 8.0;
   static const inlineToolbarWidth = 560.0;
 
   static double inlineToolbarTravel(BuildContext context) =>
@@ -111,11 +117,15 @@ class _SearchSuggestionPageState extends State<SearchSuggestionPage> {
         final history = !hasQuery && widget.historySlivers != null
             ? widget.historySlivers!()
             : const <Widget>[];
-        final suggestedTags = hasQuery ? _suggestionStore.autoWords?.tags : null;
+        final suggestedTags = hasQuery
+            ? _suggestionStore.autoWords?.tags
+            : null;
         final hasSuggestions =
-            history.isNotEmpty || tagGroup.isNotEmpty || idV ||
+            history.isNotEmpty ||
+            tagGroup.isNotEmpty ||
+            idV ||
             (suggestedTags?.isNotEmpty ?? false);
-        final suggestions = CustomScrollView(
+        final suggestionList = CustomScrollView(
           primary: widget.idleContent == null ? null : false,
           shrinkWrap: widget.idleContent != null,
           slivers: [
@@ -238,123 +248,20 @@ class _SearchSuggestionPageState extends State<SearchSuggestionPage> {
               ),
           ],
         );
+        final suggestions = isIPhone
+            ? ListTileTheme.merge(
+                titleTextStyle: Theme.of(context).textTheme.bodyMedium
+                    ?.copyWith(fontSize: 15, fontWeight: FontWeight.normal),
+                subtitleTextStyle: Theme.of(context).textTheme.bodySmall
+                    ?.copyWith(fontSize: 13, fontWeight: FontWeight.normal),
+                child: suggestionList,
+              )
+            : suggestionList;
         if (widget.idleContent != null) {
-          final safeTop = MediaQuery.paddingOf(context).top;
-          final top = safeTop + SearchSuggestionPage.inlineToolbarHeight;
-          final scroll = widget.idleScrollController;
-          final travel = scroll == null
-              ? 0.0
-              : SearchSuggestionPage.inlineToolbarTravel(context);
-          return ListenableBuilder(
-            listenable: scroll ?? const AlwaysStoppedAnimation<double>(0),
-            builder: (context, _) {
-              final offset = scroll != null && scroll.hasClients
-                  ? scroll.offset
-                  : 0.0;
-              final toolbarTop = safeTop + (travel - offset).clamp(0.0, travel);
-              return Stack(
-                fit: StackFit.expand,
-                children: [
-                  NotificationListener<ScrollStartNotification>(
-                    onNotification: (notification) {
-                      if (notification.dragDetails != null) focusNode.unfocus();
-                      return false;
-                    },
-                    child: widget.idleContent!,
-                  ),
-                  Positioned(
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    height: top,
-                    child: const ProgressiveToolbarBlur(),
-                  ),
-                  if (focusNode.hasFocus && hasSuggestions)
-                    Positioned(
-                      top: toolbarTop + SearchSuggestionPage.inlineToolbarHeight,
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      child: Align(
-                        alignment: Alignment.topCenter,
-                        child: LayoutBuilder(
-                          builder: (context, box) => TextFieldTapRegion(
-                            child: IPadSurface(
-                              maxWidth: SearchSuggestionPage.inlineToolbarWidth,
-                              child: ConstrainedBox(
-                                constraints: BoxConstraints(
-                                  maxHeight: box.maxHeight * .75,
-                                ),
-                                child: SizedBox(
-                                  width: double.infinity,
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(24),
-                                    child: suggestions,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  Positioned(
-                    top: toolbarTop,
-                    left: 0,
-                    right: 0,
-                    child: Center(
-                      child: TextFieldTapRegion(
-                        child: IPadSurface(
-                          maxWidth: SearchSuggestionPage.inlineToolbarWidth,
-                          child: SizedBox(
-                            height: 48,
-                            child: Row(
-                              children: [
-                                IconButton(
-                                  icon: const Icon(Icons.search),
-                                  tooltip: I18n.of(context).search,
-                                  onPressed: hasQuery
-                                      ? () => _submitSearch(_filter.text)
-                                      : focusNode.requestFocus,
-                                ),
-                                Expanded(
-                                  child: _textField(
-                                    context,
-                                    TextInputType.text,
-                                    focusNode,
-                                  ),
-                                ),
-                                if (_filter.text.isNotEmpty)
-                                  IconButton(
-                                    icon: const Icon(Icons.close),
-                                    onPressed: () {
-                                      _filter.clear();
-                                      onChange('');
-                                    },
-                                  ),
-                                IconButton(
-                                  icon: const Icon(Icons.paste),
-                                  onPressed: _paste,
-                                ),
-                                Builder(
-                                  builder: (anchor) => IconButton(
-                                    icon: const Icon(Icons.image_search_outlined),
-                                    onPressed: () {
-                                      focusNode.unfocus();
-                                      widget.onImageSearch?.call(anchor);
-                                    },
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              );
-            },
+          return _buildInlineSearch(
+            context,
+            suggestions: hasSuggestions ? suggestions : null,
+            hasQuery: hasQuery,
           );
         }
         return Scaffold(
@@ -366,6 +273,199 @@ class _SearchSuggestionPageState extends State<SearchSuggestionPage> {
           body: suggestions,
         );
       },
+    );
+  }
+
+  Widget _buildInlineSearch(
+    BuildContext context, {
+    required Widget? suggestions,
+    required bool hasQuery,
+  }) {
+    final padding = MediaQuery.paddingOf(context);
+    final bottom =
+        math.max(padding.bottom, MediaQuery.viewInsetsOf(context).bottom) + 8;
+    final titleStyle = Theme.of(
+      context,
+    ).textTheme.headlineMedium!.copyWith(fontWeight: FontWeight.bold);
+    final titleHeight =
+        MediaQuery.textScalerOf(context).scale(titleStyle.fontSize!) + 8;
+    final titleExtent = titleHeight + SearchSuggestionPage._titleGap;
+    final focusedTop = padding.top + SearchSuggestionPage._topGap;
+    final pinnedTop = focusedTop + titleExtent;
+    final scroll = widget.idleScrollController;
+    final travel = scroll == null
+        ? 0.0
+        : SearchSuggestionPage.inlineToolbarTravel(context);
+    final maxWidth = isIPhone ? null : SearchSuggestionPage.inlineToolbarWidth;
+    final focused = focusNode.hasFocus;
+
+    return ListenableBuilder(
+      listenable: scroll ?? const AlwaysStoppedAnimation<double>(0),
+      child: _buildInlineField(context, maxWidth: maxWidth, hasQuery: hasQuery),
+      builder: (context, field) {
+        final offset = scroll != null && scroll.hasClients
+            ? scroll.offset
+            : 0.0;
+        final idleTop = math.max(
+          pinnedTop,
+          padding.top + travel - math.max(0.0, offset),
+        );
+        return TweenAnimationBuilder<double>(
+          tween: Tween(end: focused ? 1.0 : 0.0),
+          duration: MediaQuery.disableAnimationsOf(context)
+              ? Duration.zero
+              : const Duration(milliseconds: 320),
+          curve: Curves.easeInOutCubic,
+          child: field,
+          builder: (context, progress, field) {
+            final fieldTop = lerpDouble(idleTop, focusedTop, progress)!;
+            final widthFactor = isIPhone ? lerpDouble(.84, 1, progress)! : 1.0;
+            final sideInset = isIPhone ? 8.0 * progress : 0.0;
+            return Stack(
+              fit: StackFit.expand,
+              children: [
+                NotificationListener<ScrollStartNotification>(
+                  onNotification: (notification) {
+                    if (notification.dragDetails != null) focusNode.unfocus();
+                    return false;
+                  },
+                  child: widget.idleContent!,
+                ),
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: pinnedTop + SearchSuggestionPage.inlineToolbarHeight,
+                  child: const ProgressiveToolbarBlur(),
+                ),
+                if (progress > 0)
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: ColoredBox(
+                        key: const ValueKey('search-background-scrim'),
+                        color: Colors.black.withValues(alpha: .36 * progress),
+                      ),
+                    ),
+                  ),
+                if (suggestions != null && progress > 0)
+                  Positioned(
+                    key: const ValueKey('inline-search-suggestions'),
+                    top: fieldTop + SearchSuggestionPage.inlineToolbarHeight,
+                    left: sideInset,
+                    right: sideInset,
+                    bottom: bottom,
+                    child: IgnorePointer(
+                      ignoring: !focused,
+                      child: Opacity(
+                        opacity: progress,
+                        child: Align(
+                          alignment: Alignment.topCenter,
+                          child: FractionallySizedBox(
+                            widthFactor: widthFactor,
+                            child: TextFieldTapRegion(
+                              child: IPadSurface(
+                                maxWidth: maxWidth,
+                                child: SizedBox(
+                                  width: double.infinity,
+                                  child: ClipRRect(
+                                    key: const ValueKey(
+                                      'search-suggestions-panel',
+                                    ),
+                                    borderRadius: BorderRadius.circular(24),
+                                    child: suggestions,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                Positioned(
+                  top: lerpDouble(idleTop - titleExtent, focusedTop, progress),
+                  left: 0,
+                  right: 0,
+                  height: titleHeight,
+                  child: IgnorePointer(
+                    child: Opacity(
+                      key: const ValueKey('search-title-opacity'),
+                      opacity: (1 - 2 * progress).clamp(0.0, 1.0),
+                      child: Center(
+                        child: Semantics(
+                          header: true,
+                          child: Text(
+                            I18n.of(context).search,
+                            style: titleStyle,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  key: const ValueKey('inline-search-field'),
+                  top: fieldTop,
+                  left: sideInset,
+                  right: sideInset,
+                  child: FractionallySizedBox(
+                    widthFactor: widthFactor,
+                    child: field,
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildInlineField(
+    BuildContext context, {
+    required double? maxWidth,
+    required bool hasQuery,
+  }) {
+    return TextFieldTapRegion(
+      child: IPadSurface(
+        maxWidth: maxWidth,
+        child: SizedBox(
+          key: const ValueKey('search-input-toolbar'),
+          height: SearchSuggestionPage._inputHeight,
+          child: Row(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.search),
+                tooltip: I18n.of(context).search,
+                onPressed: hasQuery
+                    ? () => _submitSearch(_filter.text)
+                    : focusNode.requestFocus,
+              ),
+              Expanded(
+                child: _textField(context, TextInputType.text, focusNode),
+              ),
+              if (_filter.text.isNotEmpty)
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () {
+                    _filter.clear();
+                    onChange('');
+                  },
+                ),
+              IconButton(icon: const Icon(Icons.paste), onPressed: _paste),
+              Builder(
+                builder: (anchor) => IconButton(
+                  icon: const Icon(Icons.image_search_outlined),
+                  onPressed: () {
+                    focusNode.unfocus();
+                    widget.onImageSearch?.call(anchor);
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -458,6 +558,8 @@ class _SearchSuggestionPageState extends State<SearchSuggestionPage> {
       cursorColor: Theme.of(context).iconTheme.color,
       style: Theme.of(context).textTheme.titleMedium!.copyWith(
         color: Theme.of(context).iconTheme.color,
+        fontSize: isIPhone ? 15 : null,
+        fontWeight: isIPhone ? FontWeight.normal : null,
       ),
       onTap: () {
         FocusScope.of(context).requestFocus(node);

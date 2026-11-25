@@ -1,3 +1,4 @@
+import 'package:pixez/component/glass_form_control.dart';
 /*
  * Copyright (C) 2020. by perol_notsf, All rights reserved
  *
@@ -137,7 +138,7 @@ class _SaveFormatPageState extends State<SaveFormatPage> {
             ),
           ),
           Observer(builder: (_) {
-            return SwitchListTile(
+            return glassSwitchTile(SwitchListTile(
               title: Text(I18n.of(context).clear_old_format_file),
               subtitle: Text(I18n.of(context).clear_old_format_file_message),
               onChanged: (bool value) {
@@ -145,7 +146,7 @@ class _SaveFormatPageState extends State<SaveFormatPage> {
                 userSetting.setIsClearnOldFormatFile(value);
               },
               value: userSetting.isClearOldFormatFile,
-            );
+            ));
           }),
           DataTable(
             columns: <DataColumn>[

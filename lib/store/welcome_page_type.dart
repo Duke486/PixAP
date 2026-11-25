@@ -27,6 +27,8 @@ enum WelcomePageType {
     switch (platform) {
       case WelcomePagePlatform.material:
         switch (this) {
+          case WelcomePageType.setting:
+            return WelcomePageType.home;
           case WelcomePageType.news:
           case WelcomePageType.bookmark:
           case WelcomePageType.followed:
@@ -43,7 +45,6 @@ const List<WelcomePageType> materialWelcomePageTypes = [
   WelcomePageType.rank,
   WelcomePageType.quickView,
   WelcomePageType.search,
-  WelcomePageType.setting,
 ];
 
 extension WelcomePagePlatformX on WelcomePagePlatform {

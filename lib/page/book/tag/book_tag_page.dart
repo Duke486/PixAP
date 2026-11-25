@@ -94,7 +94,7 @@ class _BookTagPageState extends State<BookTagPage>
               ),
             ),
           ),
-          floatingActionButton: FloatingActionButton(
+          floatingActionButton: GalleryFavoriteButton(heroTag: 'bookmark-tags-close',
             onPressed: () {
               Navigator.of(context).pop();
             },
@@ -137,7 +137,7 @@ class _BookTagPageState extends State<BookTagPage>
               word: j,
             )
         ]),
-        floatingActionButton: FloatingActionButton(
+        floatingActionButton: GalleryFavoriteButton(heroTag: 'bookmark-tags-close',
           onPressed: () {
             Navigator.of(context).pop();
           },

@@ -60,7 +60,7 @@ class _SpotLightPageState extends State<SpotLightPage> {
 
   @override
   Widget build(BuildContext context) {
-    final tablet = usesIPadLayout(context);
+    final tablet = usesAppleControls(context);
     final store = _spotlightStore!;
     final top = MediaQuery.paddingOf(context).top + kToolbarHeight;
     final toolbar = AppBar(
@@ -119,14 +119,15 @@ class _SpotLightPageState extends State<SpotLightPage> {
                 sliver: SliverLayoutBuilder(
                   builder: (context, constraints) {
                     // Every card has the same 1.91:1 cover and two-line caption.
-                    final width = constraints.crossAxisExtent / 3 - 24;
+                    final columns = isIPhone ? 2 : 3;
+                    final width = constraints.crossAxisExtent / columns - 24;
                     final height =
                         width / 1.91 +
                         MediaQuery.textScalerOf(context).scale(16) * 2.8 +
                         48;
                     return SliverGrid.builder(
                       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 3,
+                        crossAxisCount: columns,
                         mainAxisExtent: height,
                       ),
                       itemCount: articles.length,

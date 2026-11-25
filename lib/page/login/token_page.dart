@@ -1,3 +1,4 @@
+import 'package:pixez/component/glass_form_control.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:pixez/er/leader.dart';
 import 'package:pixez/i18n.dart';
@@ -82,11 +83,11 @@ class _TokenPageState extends State<TokenPage> {
         ],
       ),
       actions: [
-        TextButton(
+        GlassActionButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: Text(I18n.of(context).cancel),
+          label: I18n.of(context).cancel,
         ),
-        FilledButton(onPressed: _submit, child: Text(I18n.of(context).submit)),
+        GlassActionButton(prominent: true, onPressed: _submit, label: I18n.of(context).submit),
       ],
     );
   }

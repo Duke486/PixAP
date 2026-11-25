@@ -17,6 +17,7 @@ import 'package:pixez/page/hello/hello_page.dart' show iPadRailObserver, IPadRai
  */
 import 'dart:async';
 import 'dart:io';
+import 'package:pixez/component/ipad_surface.dart';
 
 import 'package:bot_toast/bot_toast.dart';
 import 'package:pixez/page/picture/artwork_edge_back.dart';
@@ -65,7 +66,10 @@ final FullScreenStore fullScreenStore = FullScreenStore();
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  if (Platform.isIOS) await DemoMode.initialize();
+  if (Platform.isIOS) {
+    await initializeAppleDevice();
+    await DemoMode.initialize();
+  }
   await Rhttp.init();
   await MmapCache.init();
   LicenseRegistry.addLicense(() async* {
@@ -110,6 +114,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   }
 
   late StreamSubscription<String> subscription;
+  late final Future<void> _initialAccount;
 
   @override
   void initState() {
@@ -120,7 +125,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     });
     userSetting.askInit();
     userSetting.init();
-    accountStore.fetch();
+    _initialAccount = accountStore.fetch();
     bookTagStore.init();
     muteStore.init();
 
@@ -202,25 +207,32 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                           systemNavigationBarContrastEnforced: false,
                           statusBarColor: Colors.transparent,
                         ),
-                        child: SplashPage(),
+                        child: SplashPage(accountReady: _initialAccount),
                       );
                     },
                   ),
                   title: Constants.displayName,
                   builder: (context, child) {
-                    if (Platform.isIOS && MediaQuery.sizeOf(context).shortestSide >= 600) {
+                    if (Platform.isIOS && (isIPhone || MediaQuery.sizeOf(context).shortestSide >= 600)) {
                       final theme = Theme.of(context);
                       final dark = theme.brightness == Brightness.dark;
                       final scheme = ColorScheme.fromSeed(
                         seedColor: Colors.grey, brightness: theme.brightness,
                         dynamicSchemeVariant: DynamicSchemeVariant.monochrome,
-                      ).copyWith(surface: dark ? Colors.black : Colors.white, surfaceTint: Colors.transparent);
+                      ).copyWith(primary: theme.colorScheme.primary, onPrimary: theme.colorScheme.onPrimary,
+                        primaryContainer: theme.colorScheme.primaryContainer, onPrimaryContainer: theme.colorScheme.onPrimaryContainer,
+                        surface: dark ? Colors.black : Colors.white, surfaceTint: Colors.transparent);
                       child = Theme(data: theme.copyWith(colorScheme: scheme,
+                        appBarTheme: isIPhone ? theme.appBarTheme.copyWith(
+                          centerTitle: true, elevation: 0, scrolledUnderElevation: 0,
+                          actionsPadding: const EdgeInsetsDirectional.only(end: 8),
+                          backgroundColor: scheme.surface, foregroundColor: scheme.onSurface,
+                        ) : theme.appBarTheme,
                         primaryColor: scheme.primary, scaffoldBackgroundColor: scheme.surface,
                         canvasColor: scheme.surface, cardColor: scheme.surface,
                         chipTheme: theme.chipTheme.copyWith(backgroundColor: scheme.surfaceContainerLow),
                         dialogTheme: theme.dialogTheme.copyWith(backgroundColor: scheme.surface),
-                      ), child: IPadRailLayer(child: child ?? const SizedBox.shrink()));
+                      ), child: isIPhone ? (child ?? const SizedBox.shrink()) : IPadRailLayer(child: child ?? const SizedBox.shrink()));
                     }
                     if (Platform.isIOS) child = _buildMaskBuilder(context, child);
                     I18n.context = context;

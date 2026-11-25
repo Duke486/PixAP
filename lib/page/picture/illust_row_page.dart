@@ -1,3 +1,4 @@
+import 'package:pixez/component/nsfw_artwork.dart';
 import 'package:pixez/component/ipad_surface.dart';
 /*
  * Copyright (C) 2020. by perol_notsf, All rights reserved
@@ -141,6 +142,7 @@ class _IllustRowPageState extends State<IllustRowPage>
       children: [
         Container(height: MediaQuery.of(context).padding.top),
         Container(
+          padding: EdgeInsetsDirectional.only(end: isIPhone ? 8 : 0),
           child: Row(
             mainAxisSize: MainAxisSize.max,
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -442,10 +444,11 @@ class _IllustRowPageState extends State<IllustRowPage>
             saveStore.saveImage(illust);
             await _autoBookmarkAfterSave(illust);
           },
-          child: PixivImage(
+          child: NsfwArtwork.preview(_aboutStore.illusts[index], buildPreview: (mask) => PixivImage(
             _aboutStore.illusts[index].imageUrls.squareMedium,
             enableMemoryCache: false,
-          ),
+            loadedImageBuilder: mask,
+          )),
         );
       }, childCount: _aboutStore.illusts.length),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -460,7 +463,7 @@ class _IllustRowPageState extends State<IllustRowPage>
         SliverToBoxAdapter(
           child: NullHero(
             tag: widget.heroString,
-            child: UgoiraLoader(id: widget.id, illusts: data),
+            child: NsfwArtwork(data, child: UgoiraLoader(id: widget.id, illusts: data)),
           ),
         ),
       if (data.type != "ugoira")
@@ -491,7 +494,7 @@ class _IllustRowPageState extends State<IllustRowPage>
                         ),
                       );
                     },
-                    child: _buildIllustsItem(index, data, height),
+                    child: NsfwArtwork(data, page: index, child: _buildIllustsItem(index, data, height)),
                   );
                 }, childCount: data.metaPages.length),
               ),
@@ -521,7 +524,7 @@ class _IllustRowPageState extends State<IllustRowPage>
                 ),
               );
             },
-            child: NullHero(
+            child: NsfwArtwork(data, child: NullHero(
               tag: widget.heroString,
               child: PixivImage(
                 url,
@@ -536,7 +539,7 @@ class _IllustRowPageState extends State<IllustRowPage>
                       )
                     : placeWidget,
               ),
-            ),
+            )),
           );
         },
       ),
@@ -936,14 +939,14 @@ class _IllustRowPageState extends State<IllustRowPage>
                                 },
                                 child: Stack(
                                   children: [
-                                    PixivImage(
+                                    NsfwArtwork(illust, page: index, child: PixivImage(
                                       data.imageUrls!.squareMedium,
                                       placeWidget: Container(
                                         child: Center(
                                           child: Text(index.toString()),
                                         ),
                                       ),
-                                    ),
+                                    )),
                                     Align(
                                       alignment: Alignment.bottomRight,
                                       child: Visibility(

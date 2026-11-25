@@ -1,3 +1,5 @@
+import 'package:pixez/store/user_setting.dart';
+import 'package:pixez/component/glass_form_control.dart';
 /*
  * Copyright (C) 2020. by perol_notsf, All rights reserved
  *
@@ -97,7 +99,7 @@ class _SettingQualityPageState extends State<SettingQualityPage>
 
   @override
   Widget build(BuildContext context) {
-    final tablet = usesIPadLayout(context);
+    final tablet = usesAppleControls(context);
     return Scaffold(
       extendBodyBehindAppBar: tablet,
       appBar: AppBar(
@@ -190,6 +192,7 @@ class _SettingQualityPageState extends State<SettingQualityPage>
                   title: Text(I18n.of(context).welcome_page),
                   trailing: SettingSelectMenu(
                     index: userSetting.materialWelcomePageIndex,
+                    fixedOrder: true,
                     items: userSetting.materialWelcomePages
                         .map((type) => _welcomePageLabel(context, type))
                         .toList(),
@@ -231,7 +234,7 @@ class _SettingQualityPageState extends State<SettingQualityPage>
                     },
                   ),
                 ),
-                ListTile(
+                if (!isIPhone) ListTile(
                   leading: const Icon(Icons.stay_primary_landscape),
                   title: Text(I18n.of(context).crosscount),
                   trailing: SettingSelectMenu(
@@ -286,59 +289,68 @@ class _SettingQualityPageState extends State<SettingQualityPage>
                       },
                     ),
                   ),
-                Divider(),
-                SwitchListTile(
-                  value: userSetting.isBangs,
-                  title: Text(I18n.of(context).special_shaped_screen),
-                  onChanged: (value) async {
-                    HapticUtil.light();
-                    userSetting.setIsBangs(value);
-                  },
+                ListTile(
+                  leading: const Icon(Icons.visibility_outlined),
+                  title: Text(I18n.of(context).nsfw_display_mode),
+                  trailing: SettingSelectMenu(
+                    index: userSetting.nsfwDisplayMode.index,
+                    items: [I18n.of(context).nsfw_mask_media, I18n.of(context).nsfw_replace, I18n.of(context).nsfw_show],
+                    fixedOrder: true,
+                    onChange: (index) => userSetting.setNsfwDisplayMode(NsfwDisplayMode.values[index]),
+                  ),
                 ),
-                SwitchListTile(
+                Divider(),
+                glassSwitchTile(SwitchListTile(
                   value: userSetting.longPressSaveConfirm,
                   title: Text(I18n.of(context).long_press_save_confirm),
                   onChanged: (value) async {
                     HapticUtil.light();
                     userSetting.setLongPressSaveConfirm(value);
                   },
-                ),
-                SwitchListTile(
-                  value: userSetting.hIsNotAllow,
-                  title: Text('H是不行的！'),
-                  onChanged: (value) async {
-                    HapticUtil.light();
-                    if (!value) BotToast.showText(text: 'H是可以的！(ˉ﹃ˉ)');
-                    userSetting.setHIsNotAllow(value);
-                  },
-                ),
-                SwitchListTile(
+                )),
+                glassSwitchTile(SwitchListTile(
                   value: userSetting.isReturnAgainToExit,
                   title: Text(I18n.of(context).return_again_to_exit),
                   onChanged: (value) async {
                     HapticUtil.light();
                     userSetting.setIsReturnAgainToExit(value);
                   },
-                ),
-                SwitchListTile(
+                )),
+                glassSwitchTile(SwitchListTile(
                   value: userSetting.swipeChangeArtwork,
                   title: Text(I18n.of(context).swipe_to_switch_artworks),
                   onChanged: (value) async {
                     HapticUtil.light();
                     userSetting.setSwipeChangeArtwork(value);
                   },
-                ),
+                )),
                 if (Platform.isIOS)
-                  SwitchListTile(
+                  glassSwitchTile(SwitchListTile(
+                    value: userSetting.artworkRightEdgeBack,
+                    title: Text(I18n.of(context).artwork_right_edge_back),
+                    subtitle: Text(
+                      I18n.of(context).artwork_right_edge_back_description,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontSize: 12,
+                      ),
+                    ),
+                    onChanged: (value) async {
+                      HapticUtil.light();
+                      await userSetting.setArtworkRightEdgeBack(value);
+                    },
+                  )),
+                if (Platform.isIOS)
+                  glassSwitchTile(SwitchListTile(
                     value: userSetting.hapticFeedback,
                     title: Text(I18n.of(context).haptic_feedback),
                     onChanged: (value) async {
                       if (value) HapticUtil.light(force: true);
                       userSetting.setHapticFeedback(value);
                     },
-                  ),
+                  )),
                 if (Platform.isIOS)
-                  SwitchListTile(
+                  glassSwitchTile(SwitchListTile(
                     value: userSetting.nsfwMask,
                     title: Text(
                       Platform.isIOS
@@ -349,34 +361,34 @@ class _SettingQualityPageState extends State<SettingQualityPage>
                       HapticUtil.light();
                       userSetting.changeNsfwMask(value);
                     },
-                  ),
+                  )),
                 if (!Platform.isIOS)
-                  SwitchListTile(
+                  glassSwitchTile(SwitchListTile(
                     value: userSetting.useSaunceNaoWebview,
                     title: Text(I18n.of(context).open_saucenao_using_webview),
                     onChanged: (value) async {
                       HapticUtil.light();
                       userSetting.setUseSaunceNaoWebview(value);
                     },
-                  ),
-                SwitchListTile(
+                  )),
+                glassSwitchTile(SwitchListTile(
                   value: userSetting.illustDetailSaveSkipLongPress,
                   title: Text(I18n.of(context).illust_detail_save_skip_confirm),
                   onChanged: (value) async {
                     HapticUtil.light();
                     userSetting.setIllustDetailSaveSkipLongPress(value);
                   },
-                ),
-                SwitchListTile(
+                )),
+                glassSwitchTile(SwitchListTile(
                   value: userSetting.feedAIBadge,
                   title: Text(I18n.of(context).show_feed_ai_badge),
                   onChanged: (value) async {
                     HapticUtil.light();
                     userSetting.setFeedAIBadge(value);
                   },
-                ),
+                )),
                 if (Platform.isMacOS)
-                  SwitchListTile(
+                  glassSwitchTile(SwitchListTile(
                     value: Updater.result == Result.yes &&
                         Updater.latestVersion != null &&
                         userSetting.ignoreUpdateVersion == Updater.latestVersion,
@@ -397,25 +409,25 @@ class _SettingQualityPageState extends State<SettingQualityPage>
                         await userSetting.setIgnoreUpdateVersion(null);
                       }
                     },
-                  ),
+                  )),
                 Divider(),
-                SwitchListTile(
+                glassSwitchTile(SwitchListTile(
                   value: userSetting.followAfterStar,
                   title: Text(I18n.of(context).follow_after_star),
                   onChanged: (value) async {
                     HapticUtil.light();
                     userSetting.setFollowAfterStar(value);
                   },
-                ),
-                SwitchListTile(
+                )),
+                glassSwitchTile(SwitchListTile(
                   value: userSetting.defaultPrivateLike,
                   title: Text(I18n.of(context).private_like_by_default),
                   onChanged: (value) async {
                     HapticUtil.light();
                     userSetting.setDefaultPrivateLike(value);
                   },
-                ),
-                SwitchListTile(
+                )),
+                glassSwitchTile(SwitchListTile(
                   value: userSetting.saveAfterStar,
                   title: Text(
                     I18n.of(context).automatically_download_when_bookmarking,
@@ -424,8 +436,8 @@ class _SettingQualityPageState extends State<SettingQualityPage>
                     HapticUtil.light();
                     userSetting.setSaveAfterStar(value);
                   },
-                ),
-                SwitchListTile(
+                )),
+                glassSwitchTile(SwitchListTile(
                   value: userSetting.starAfterSave,
                   title: Text(
                     I18n.of(context).automatically_bookmark_when_downloading,
@@ -434,8 +446,8 @@ class _SettingQualityPageState extends State<SettingQualityPage>
                     HapticUtil.light();
                     userSetting.setStarAfterSave(value);
                   },
-                ),
-                SwitchListTile(
+                )),
+                glassSwitchTile(SwitchListTile(
                   value: userSetting.autoTagWhenStar,
                   title: Text(
                     I18n.of(context).automatically_tag_when_bookmarking,
@@ -444,15 +456,15 @@ class _SettingQualityPageState extends State<SettingQualityPage>
                     HapticUtil.light();
                     userSetting.setAutoTagWhenStar(value);
                   },
-                ),
+                )),
                 Divider(),
                 if (Platform.isIOS)
-                  SwitchListTile(
+                  glassSwitchTile(SwitchListTile(
                     value: DemoMode.active,
                     title: const Text('演示模式'),
                     subtitle: const Text(demoHint),
                     onChanged: DemoMode.restart,
-                  ),
+                  )),
               ],
             ),
           );
@@ -477,12 +489,14 @@ class _SettingQualityPageState extends State<SettingQualityPage>
 class SettingSelectMenu extends StatefulWidget {
   final int index;
   final List<String> items;
+  final bool fixedOrder;
   final FutureOr<void> Function(int) onChange;
   const SettingSelectMenu({
     super.key,
     required this.index,
     required this.items,
     required this.onChange,
+    this.fixedOrder = false,
   });
 
   @override
@@ -512,7 +526,15 @@ class _SettingSelectMenuState extends State<SettingSelectMenu> {
 
   @override
   Widget build(BuildContext context) {
-    final tablet = usesIPadLayout(context);
+    if (usesNativeFormControls) {
+      return GlassChoice(labels: _items, index: _index, fixedOrder: widget.fixedOrder, onSelect: (index) {
+        if (index == _index) return;
+        setState(() => _index = index);
+        HapticUtil.selectionClick();
+        widget.onChange(index);
+      });
+    }
+    final tablet = usesAppleControls(context);
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(tablet ? 0 : 8)),
       clipBehavior: Clip.antiAlias,
@@ -534,7 +556,9 @@ class _SettingSelectMenuState extends State<SettingSelectMenu> {
             ),
             items: <PopupMenuEntry<int>>[
               for (int i = 0; i < _items.length; i++)
-                if (i != _index)
+                if (widget.fixedOrder)
+                  CheckedPopupMenuItem(value: i, checked: i == _index, child: Text(_items[i]))
+                else if (i != _index)
                   PopupMenuItem(value: i, child: Text(_items[i])),
             ],
           );

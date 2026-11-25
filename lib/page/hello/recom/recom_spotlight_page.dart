@@ -23,17 +23,24 @@ import 'dart:math';
 import 'package:easy_refresh/easy_refresh.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
+import 'package:mobx/mobx.dart' show runInAction;
 import 'package:pixez/component/illust_card.dart';
 import 'package:pixez/component/pixez_default_header.dart';
 import 'package:pixez/component/pixiv_image.dart';
+import 'package:pixez/er/prefer.dart';
 import 'package:pixez/exts.dart';
 import 'package:pixez/i18n.dart';
 import 'package:pixez/lighting/lighting_store.dart';
 import 'package:pixez/main.dart';
+import 'package:pixez/models/recommend.dart';
+import 'package:pixez/models/spotlight_response.dart';
+import 'package:pixez/models/user_preview.dart';
 import 'package:pixez/network/api_client.dart';
+import 'package:pixez/page/hello/recom/home_feed_refresh.dart';
 import 'package:pixez/page/hello/recom/recom_user_road.dart';
 import 'package:pixez/page/hello/recom/recom_user_store.dart';
 import 'package:pixez/page/hello/recom/spotlight_store.dart';
+import 'package:pixez/page/hello/setting/demo_mode.dart';
 import 'package:pixez/page/soup/soup_page.dart';
 import 'package:pixez/page/spotlight/spotlight_page.dart';
 import 'package:waterfall_flow/waterfall_flow.dart';
@@ -62,9 +69,11 @@ class _RecomSpolightPageState extends State<RecomSpolightPage>
   late StreamSubscription<String> subscription;
   late EasyRefreshController _easyRefreshController;
   late ScrollController _scrollController;
+  late HomeFeedRefresh<_HomeRecommendations> _homeRefresh;
 
   @override
   void dispose() {
+    _homeRefresh.dispose();
     subscription.cancel();
     _scrollController.dispose();
     _easyRefreshController.dispose();
@@ -74,15 +83,27 @@ class _RecomSpolightPageState extends State<RecomSpolightPage>
   @override
   void initState() {
     _scrollController = ScrollController();
-    _easyRefreshController = EasyRefreshController(
-        controlFinishLoad: true, controlFinishRefresh: true);
-    _recomUserStore = RecomUserStore(_easyRefreshController);
+    _easyRefreshController = EasyRefreshController(controlFinishLoad: true);
+    _recomUserStore = RecomUserStore(null);
     spotlightStore = SpotlightStore(null);
     _lightingStore = LightingStore(
       ApiForceSource(
           futureGet: (e) => apiClient.getRecommend(), glanceKey: "recom"),
     )..easyRefreshController = _easyRefreshController;
     super.initState();
+    final userId = accountStore.now?.userId;
+    _homeRefresh = HomeFeedRefresh(
+      cacheKey: userId == null || DemoMode.active
+          ? null
+          : 'home_feed.v1.$userId.${Prefer.getInt("language_num")}',
+      decode: _HomeRecommendations.fromJson,
+      encode: (snapshot) => snapshot.toJson(),
+      fetch: _fetchHome,
+      show: _applySnapshot,
+    )..restore();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) unawaited(_homeRefresh.refresh(manual: false));
+    });
     subscription = topStore.topStream.listen((event) {
       if (event == "100" && _scrollController.hasClients) {
         _scrollController.jumpTo(0);
@@ -90,16 +111,46 @@ class _RecomSpolightPageState extends State<RecomSpolightPage>
     });
   }
 
-  Future<void> fetchT() async {
-    await spotlightStore.fetch();
-    _lightingStore.fetch();
-    _recomUserStore.fetch();
+  Future<HomeFeedResult<_HomeRecommendations>> _fetchHome(_HomeRecommendations? previous) async {
+    final (feed, articles, users) = await (
+      fetchHomeFeedPart(() => apiClient.getRecommend(force: true), Recommend.fromJson),
+      fetchHomeFeedPart(() => apiClient.getSpotlightArticles('all', force: true), SpotlightResponse.fromJson),
+      fetchHomeFeedPart(() => apiClient.getUserRecommended(force: true), UserPreviewsResponse.fromJson),
+    ).wait;
+    return (
+      snapshot: _HomeRecommendations(
+        feed.snapshot,
+        articles.snapshot ?? previous?.spotlight,
+        users.snapshot ?? previous?.users,
+      ),
+      error: feed.error,
+    );
+  }
+
+  void _applySnapshot(_HomeRecommendations? snapshot, {required bool fromNetwork}) {
+    runInAction(() {
+      _lightingStore.replaceRecommendations(snapshot?.feed, publishWidget: fromNetwork);
+      spotlightStore.articles
+        ..clear()
+        ..addAll(snapshot?.spotlight?.spotlightArticles ?? const []);
+      _recomUserStore.users
+        ..clear()
+        ..addAll(snapshot?.users?.user_previews ?? const []);
+      _recomUserStore.nextUrl = snapshot?.users?.next_url;
+    });
+    _easyRefreshController.resetFooter();
   }
 
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    return buildEasyRefresh(context);
+    return HomeFeedOverlay(
+      refresh: _homeRefresh,
+      child: ListenableBuilder(
+        listenable: _homeRefresh,
+        builder: (context, _) => buildEasyRefresh(context),
+      ),
+    );
   }
 
   bool backToTopVisible = false;
@@ -107,7 +158,7 @@ class _RecomSpolightPageState extends State<RecomSpolightPage>
   Widget buildEasyRefresh(BuildContext context) {
     return Stack(
       children: [
-        if (!usesIPadLayout(context)) NestedScrollView(
+        if (!usesAppleControls(context)) NestedScrollView(
           headerSliverBuilder: (context, innerBoxIsScrolled) => [
             SliverAppBar(
               elevation: 0.0,
@@ -122,14 +173,12 @@ class _RecomSpolightPageState extends State<RecomSpolightPage>
         EasyRefresh.builder(
           controller: _easyRefreshController,
           callLoadOverOffset: Platform.isIOS ? 2 : 5,
-          header: usesIPadLayout(context)
+          header: usesAppleControls(context)
               ? PixezDefault.header(context, position: IndicatorPosition.locator, safeArea: false)
               : PixezDefault.header(context),
           footer: PixezDefault.footer(context),
-          onRefresh: () async {
-            await fetchT();
-          },
-          refreshOnStart: true,
+          onRefresh: () async => await _homeRefresh.refresh(manual: true)
+              ? IndicatorResult.success : IndicatorResult.fail,
           onLoad: () async {
             await _lightingStore.fetchNext();
           },
@@ -161,7 +210,7 @@ class _RecomSpolightPageState extends State<RecomSpolightPage>
           SliverToBoxAdapter(
             child: Container(height: MediaQuery.of(context).padding.top),
           ),
-          if (usesIPadLayout(context)) const HeaderLocator.sliver(),
+          if (usesAppleControls(context)) const HeaderLocator.sliver(),
           SliverToBoxAdapter(
             child: _buildFirstRow(context),
           ),
@@ -171,7 +220,7 @@ class _RecomSpolightPageState extends State<RecomSpolightPage>
           SliverToBoxAdapter(
             child: _buildSecondRow(context, I18n.of(context).recommend_for_you),
           ),
-          SliverPadding(padding: EdgeInsets.only(right: usesIPadLayout(context) ? 12 : 0),
+          SliverPadding(padding: EdgeInsets.only(right: usesAppleControls(context) ? 12 : 0),
             sliver: _buildWaterfall(context, MediaQuery.of(context).orientation))
         ],
       ),
@@ -214,7 +263,7 @@ class _RecomSpolightPageState extends State<RecomSpolightPage>
               );
             }, childCount: _lightingStore.iStores.length),
           )
-        : (_lightingStore.errorMessage?.isNotEmpty == true
+        : (_homeRefresh.error != null
             ? SliverToBoxAdapter(
                 child: Container(
                   child: Column(
@@ -232,16 +281,15 @@ class _RecomSpolightPageState extends State<RecomSpolightPage>
                       ),
                       TextButton(
                           onPressed: () {
-                            _lightingStore.fetch(force: true);
+                            _easyRefreshController.callRefresh(scrollController: _scrollController);
                           },
                           child: Text(I18n.of(context).retry)),
                       Padding(
                           padding: const EdgeInsets.all(16.0),
                           child: Text(
-                            (_lightingStore.errorMessage?.contains("400") ==
-                                    true
-                                ? '${I18n.of(context).error_400_hint}\n ${_lightingStore.errorMessage}'
-                                : '${_lightingStore.errorMessage}'),
+                            (_homeRefresh.error.toString().contains('400')
+                                ? '${I18n.of(context).error_400_hint}\n ${_homeRefresh.error}'
+                                : '${_homeRefresh.error}'),
                           ))
                     ],
                   ),
@@ -260,20 +308,20 @@ class _RecomSpolightPageState extends State<RecomSpolightPage>
     final cardWidth = usesIPadLayout(context) ? coverWidth : expectCardWidget;
     final expectCardHeight = usesIPadLayout(context) ? coverHeight : cardWidth * .525;
     return Container(
-      height: expectCardHeight + (usesIPadLayout(context) ? 12 : 0),
+      height: expectCardHeight + (usesAppleControls(context) ? 12 : 0),
       padding: EdgeInsets.zero,
       child: spotlightStore.articles.isNotEmpty
           ? ListView.builder(
-              padding: usesIPadLayout(context) ? const EdgeInsets.only(top: 3, bottom: 9) : null,
+              padding: usesAppleControls(context) ? const EdgeInsets.only(top: 3, bottom: 9) : null,
               primary: false,
-              physics: usesIPadLayout(context) ? const ClampingScrollPhysics() : null,
+              physics: usesAppleControls(context) ? const ClampingScrollPhysics() : null,
               itemBuilder: (context, index) {
                 final spotlight = spotlightStore.articles[index];
                 return Card(
                   clipBehavior: Clip.antiAlias,
                   margin: EdgeInsets.symmetric(horizontal: 8.0),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.all(Radius.circular(usesIPadLayout(context) ? 16 : 8))),
+                      borderRadius: BorderRadius.all(Radius.circular(usesAppleControls(context) ? 16 : 8))),
                   child: Hero(
                     tag: "spotlight_image_${spotlight.hashCode}",
                     child: Material(
@@ -297,7 +345,7 @@ class _RecomSpolightPageState extends State<RecomSpolightPage>
                                     fit: BoxFit.cover,
                                     image: PixivProvider.url(
                                         spotlight.thumbnail))),
-                            child: usesIPadLayout(context) ? Stack(fit: StackFit.expand, children: [
+                            child: usesAppleControls(context) ? Stack(fit: StackFit.expand, children: [
                               CoverBlur(image: PixivProvider.url(spotlight.thumbnail), sigma: blurRadius,
                                 extent: blurExtent, midpoint: midpoint, plateau: plateau, opacity: opacity, tint: Colors.black.withValues(alpha: veil)),
                               Align(alignment: Alignment.bottomLeft, child: Padding(padding: const EdgeInsets.fromLTRB(12,0,12,8),
@@ -412,11 +460,36 @@ class _RecomSpolightPageState extends State<RecomSpolightPage>
           ),
           padding: EdgeInsets.only(left: 20.0),
         ),
-        Expanded(child: RecomUserRoad())
+        Expanded(child: RecomUserRoad(recomUserStore: _recomUserStore))
       ],
     );
   }
 
   @override
   bool get wantKeepAlive => true;
+}
+
+class _HomeRecommendations {
+  const _HomeRecommendations(this.feed, this.spotlight, this.users);
+
+  final Recommend? feed;
+  final SpotlightResponse? spotlight;
+  final UserPreviewsResponse? users;
+
+  factory _HomeRecommendations.fromJson(Map<String, dynamic> json) {
+    final feed = Recommend.fromJson(json['feed'] as Map<String, dynamic>);
+    final spotlight = json['spotlight'] as Map<String, dynamic>?;
+    final users = json['users'] as Map<String, dynamic>?;
+    return _HomeRecommendations(
+      feed,
+      spotlight == null ? null : SpotlightResponse.fromJson(spotlight),
+      users == null ? null : UserPreviewsResponse.fromJson(users),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'feed': feed?.toJson(),
+    'spotlight': spotlight?.toJson(),
+    'users': users?.toJson(),
+  };
 }

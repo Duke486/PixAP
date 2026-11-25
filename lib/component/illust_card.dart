@@ -1,3 +1,4 @@
+import 'package:pixez/component/nsfw_artwork.dart';
 import 'package:pixez/component/card_reflection.dart';
 /*
  * Copyright (C) 2020. by perol_notsf, All rights reserved
@@ -21,10 +22,8 @@ import 'dart:io';
 import 'package:bot_toast/bot_toast.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
-import 'package:pixez/component/null_hero.dart';
 import 'package:pixez/component/pixiv_image.dart';
 import 'package:pixez/component/star_icon.dart';
-import 'package:pixez/constants.dart';
 import 'package:pixez/er/illust_cacher.dart';
 import 'package:pixez/er/lprinter.dart';
 import 'package:pixez/er/prefer.dart';
@@ -82,24 +81,6 @@ class _IllustCardState extends State<IllustCard> {
 
   @override
   Widget build(BuildContext context) {
-    if (userSetting.hIsNotAllow)
-      for (int i = 0; i < store.illusts!.tags.length; i++) {
-        if (store.illusts!.tags[i].name.startsWith('R-18')) {
-          return InkWell(
-            onTap: () => _buildTap(context),
-            onLongPress: () => _onLongPressSave(),
-            child: Card(
-              margin: EdgeInsets.all(8.0),
-              elevation: 8.0,
-              clipBehavior: Clip.antiAlias,
-              shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.all(Radius.circular(8.0)),
-              ),
-              child: Image.asset(Constants.no_h),
-            ),
-          );
-        }
-      }
     return _buildInkWell(context);
   }
 
@@ -144,21 +125,6 @@ class _IllustCardState extends State<IllustCard> {
     }
   }
 
-  Future _buildTap(BuildContext context) {
-    return Navigator.of(context, rootNavigator: true).push(
-      MaterialPageRoute(
-        builder: (_) {
-          return PictureListPage(
-            iStores: iStores!,
-            store: store,
-            lightingStore: _lightingStore,
-            heroString: tag,
-          );
-        },
-      ),
-    );
-  }
-
   Widget cardText() {
     if (store.illusts!.type != "illust") {
       return Text(store.illusts!.type, style: TextStyle(color: Colors.white));
@@ -180,27 +146,16 @@ class _IllustCardState extends State<IllustCard> {
             store.illusts!.metaPages[0].imageUrls!.original,
       _ => store.illusts!.imageUrls.medium,
     };
-  Widget _buildPic(String tag, bool tooLong) {
-    final url = _previewUrl;
+  Widget _buildPic(String tag, bool tooLong, Widget Function(Widget)? mask) {
     final quality = IllustQualityExtension.fromValue(
       userSetting.feedPreviewQuality,
     );
-    return tooLong
-        ? NullHero(
-            tag: tag,
-            child: PixivImage(
-              store.illusts!.imageUrls.squareMedium,
-              fit: BoxFit.fitWidth,
-            ),
-          )
-        : NullHero(
-            tag: tag,
-            child: PixivImage(
-              url,
-              fit: BoxFit.fitWidth,
-              cacheHeaderData: PixEzCacheHeaderData(key: tag, quality: quality),
-            ),
-          );
+    return PixivImage(
+      tooLong ? store.illusts!.imageUrls.squareMedium : _previewUrl,
+      fit: BoxFit.fitWidth,
+      cacheHeaderData: tooLong ? null : PixEzCacheHeaderData(key: tag, quality: quality),
+      loadedImageBuilder: mask,
+    );
   }
 
   Widget _buildInkWell(BuildContext context) {
@@ -209,7 +164,7 @@ class _IllustCardState extends State<IllustCard> {
     var radio = (tooLong)
         ? 1.0
         : store.illusts!.width.toDouble() / store.illusts!.height.toDouble();
-    final tablet = usesIPadLayout(context);
+    final tablet = usesAppleControls(context);
     final content = _buildAnimationWraper(
         context,
         Column(
@@ -218,7 +173,11 @@ class _IllustCardState extends State<IllustCard> {
               aspectRatio: radio,
               child: Stack(
                 children: [
-                  Positioned.fill(child: _buildPic(tag, tooLong)),
+                  Positioned.fill(child: NsfwArtwork.preview(
+                    store.illusts!,
+                    heroTag: tag,
+                    buildPreview: (mask) => _buildPic(tag, tooLong, mask),
+                  )),
                   Positioned(
                     top: 5.0,
                     right: 5.0,
@@ -342,6 +301,7 @@ class _IllustCardState extends State<IllustCard> {
     HapticUtil.selectionClick();
     await Navigator.of(context, rootNavigator: true).push(
       MaterialPageRoute(
+        allowSnapshotting: false,
         builder: (_) {
           if (iStores != null) {
             return PictureListPage(
@@ -365,13 +325,13 @@ class _IllustCardState extends State<IllustCard> {
     return Container(
       child: Stack(
         children: <Widget>[
-          if (usesIPadLayout(context)) Positioned.fill(child: CardReflection(style: artworkReflection,
+          if (usesAppleControls(context)) Positioned.fill(child: CardReflection(style: artworkReflection,
             images: [PixivProvider.url(store.illusts!.height > store.illusts!.width * 3 ? store.illusts!.imageUrls.squareMedium : _previewUrl)])),
           Padding(
             padding: EdgeInsets.only(
-              left: usesIPadLayout(context) ? 12.0 : 8.0,
+              left: usesAppleControls(context) ? 12.0 : 8.0,
               right: 36.0,
-              top: usesIPadLayout(context) ? 6 : 4,
+              top: usesAppleControls(context) ? 6 : 4,
               bottom: 4,
             ),
             child: Column(
@@ -381,7 +341,7 @@ class _IllustCardState extends State<IllustCard> {
                   store.illusts!.title,
                   maxLines: 1,
                   overflow: TextOverflow.clip,
-                  style: usesIPadLayout(context) ? Theme.of(context).textTheme.titleSmall : Theme.of(context).textTheme.bodyMedium,
+                  style: usesAppleControls(context) ? Theme.of(context).textTheme.titleSmall : Theme.of(context).textTheme.bodyMedium,
                   strutStyle: StrutStyle(forceStrutHeight: true, leading: 0),
                 ),
                 Text(

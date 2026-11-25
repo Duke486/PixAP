@@ -1,6 +1,7 @@
+import 'package:pixez/page/login/pixap_glass_logo.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:pixez/component/ipad_surface.dart';
+import 'package:pixez/component/glass_form_control.dart';
 import 'package:pixez/er/leader.dart';
 import 'package:pixez/page/hello/hello_page.dart';
 import 'package:pixez/page/login/login_page.dart';
@@ -21,16 +22,22 @@ void main() {
     );
 
     expect(find.text('PixAP'), findsOneWidget);
-    final icon = tester.widget<Image>(find.byType(Image));
+    expect(find.byType(PixapGlassLogo), findsOneWidget);
+    expect(find.text('Sign up'), findsOneWidget);
+    expect(find.byType(GlassActionButton), findsNWidgets(2));
+    expect(find.text('|'), findsOneWidget);
     expect(
-      (icon.image as AssetImage).assetName,
-      'assets/images/pixap_login_icon.png',
+      tester.getTopLeft(find.text('|')).dy,
+      greaterThan(tester.getBottomLeft(find.text('Log in with Token')).dy),
     );
-    expect(find.byType(IPadSurface), findsOneWidget);
     expect(find.byType(BottomAppBar), findsNothing);
-    expect(find.byType(FilledButton), findsNWidgets(2));
-    expect(find.text('Token'), findsOneWidget);
-    expect(find.byType(TextButton), findsOneWidget);
+    expect(find.text('Log in with Token'), findsOneWidget);
+    expect(
+      tester
+          .widgetList<GlassActionButton>(find.byType(GlassActionButton))
+          .where((button) => button.prominent),
+      hasLength(1),
+    );
   });
 
   testWidgets('login from a detail navigator replaces the root route', (

@@ -1,3 +1,4 @@
+import 'package:pixez/component/glass_form_control.dart';
 import 'package:bot_toast/bot_toast.dart';
 import 'package:cupertino_ui/cupertino_ui.dart';
 import 'package:material_ui/material_ui.dart';
@@ -127,7 +128,7 @@ class _NovelResultListState extends State<NovelResultList> {
   }
 
   Widget _buildDateRangeButton() {
-    return PopupMenuButton<SearchDatePreset>(
+    return glassPopup(context, PopupMenuButton<SearchDatePreset>(
       child: Padding(
         padding: const EdgeInsets.all(8.0),
         child: Icon(
@@ -182,7 +183,7 @@ class _NovelResultListState extends State<NovelResultList> {
           );
         }).toList();
       },
-    );
+    ), 'calendar', active: _dateTimeRange != null);
   }
 
   DateTimeRange? _dateTimeRange;
@@ -340,7 +341,7 @@ class _NovelResultListState extends State<NovelResultList> {
   }
 
   Widget _buildStar() {
-    return PopupMenuButton(
+    return glassPopup(context, PopupMenuButton(
       initialValue: _starValue,
       child: Icon(
         Icons.sort,
@@ -374,6 +375,6 @@ class _NovelResultListState extends State<NovelResultList> {
           }
         }).toList();
       },
-    );
+    ), 'line.3.horizontal.decrease');
   }
 }

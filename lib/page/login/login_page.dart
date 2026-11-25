@@ -1,3 +1,5 @@
+import 'package:pixez/page/login/pixap_glass_logo.dart';
+import 'package:pixez/component/glass_form_control.dart';
 /*
  * Copyright (C) 2020. by perol_notsf, All rights reserved
  *
@@ -18,7 +20,6 @@ import 'dart:io';
 
 import 'package:bot_toast/bot_toast.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:pixez/component/ipad_surface.dart';
 import 'package:pixez/constants.dart';
 import 'package:pixez/er/leader.dart';
 import 'package:pixez/i18n.dart';
@@ -52,42 +53,7 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    if (Theme.of(context).platform == TargetPlatform.iOS) {
-      return _buildGlassPage(context);
-    }
-    return Scaffold(
-      bottomNavigationBar: BottomAppBar(
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: <Widget>[
-            IconButton(
-              icon: Icon(Icons.settings),
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (context) => SettingQualityPage()),
-                );
-              },
-            ),
-            IconButton(
-              icon: Icon(Icons.message),
-              onPressed: () {
-                Navigator.of(
-                  context,
-                ).push(MaterialPageRoute(builder: (context) => AboutPage()));
-              },
-            ),
-          ],
-        ),
-      ),
-      appBar: AppBar(elevation: 0.0, backgroundColor: Colors.transparent),
-      extendBody: true,
-      extendBodyBehindAppBar: true,
-      body: Builder(
-        builder: (context) {
-          return _buildBody(context);
-        },
-      ),
-    );
+    return _buildGlassPage(context);
   }
 
   Widget _buildGlassPage(BuildContext context) {
@@ -97,6 +63,44 @@ class _LoginPageState extends State<LoginPage> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
+        actions: [
+          if (theme.platform == TargetPlatform.macOS) ...[
+            IconButton(
+              icon: const Icon(Icons.settings),
+              onPressed: () => Leader.push(context, SettingQualityPage()),
+            ),
+            IconButton(
+              icon: const Icon(Icons.info_outline),
+              onPressed: () => Leader.push(context, AboutPage()),
+            ),
+          ],
+        ],
+      ),
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Wrap(
+            alignment: WrapAlignment.center,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              _footerLink(
+                I18n.of(context).register_account,
+                () => _openLogin(create: true),
+              ),
+              ExcludeSemantics(
+                child: Text(
+                  '|',
+                  style: TextStyle(color: theme.colorScheme.outline),
+                ),
+              ),
+              _footerLink(
+                I18n.of(context).terms,
+                () => launchUrlString('https://www.pixiv.net/terms/?page=term'),
+              ),
+            ],
+          ),
+        ),
       ),
       body: SafeArea(
         child: LayoutBuilder(
@@ -115,28 +119,14 @@ class _LoginPageState extends State<LoginPage> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(24),
-                          child: Image.asset(
-                            'assets/images/pixap_login_icon.png',
-                            width: 96,
-                            height: 96,
-                          ),
-                        ),
+                        const PixapGlassLogo(),
                         const SizedBox(height: 16),
                         Text(
                           Constants.appleAppName,
                           style: theme.textTheme.headlineMedium,
                         ),
                         const SizedBox(height: 24),
-                        IPadSurface(
-                          includeIPhone: true,
-                          darkGlass: theme.brightness == Brightness.dark,
-                          child: Padding(
-                            padding: const EdgeInsets.all(18),
-                            child: _buildActions(context),
-                          ),
-                        ),
+                        _buildActions(context),
                       ],
                     ),
                   ),
@@ -149,23 +139,27 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  Widget _buildBody(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(top: MediaQuery.paddingOf(context).top),
-      child: SingleChildScrollView(
-        child: Column(
-          children: [
-            const SizedBox(height: 20),
-            Image.asset('assets/images/icon.png', height: 80, width: 80),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-              child: _buildActions(context),
+  Widget _footerLink(String text, VoidCallback activate) => Semantics(
+    link: true,
+    child: GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: activate,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 44),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          child: Center(
+            widthFactor: 1,
+            heightFactor: 1,
+            child: Text(
+              text,
+              style: const TextStyle(fontSize: 13, color: Color(0xff007aff)),
             ),
-          ],
+          ),
         ),
       ),
-    );
-  }
+    ),
+  );
 
   Widget _buildActions(BuildContext context) {
     final strings = I18n.of(context);
@@ -174,28 +168,18 @@ class _LoginPageState extends State<LoginPage> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const SizedBox(height: 10),
-        FilledButton(onPressed: () => _openLogin(), child: Text(strings.login)),
-        const SizedBox(height: 4),
-        FilledButton(
-          onPressed: () => _openLogin(create: true),
-          child: Text(strings.dont_have_account),
+        GlassActionButton(
+          prominent: true,
+          onPressed: () => _openLogin(),
+          label: strings.login,
         ),
-        const SizedBox(height: 4),
-        OutlinedButton(
+        const SizedBox(height: 10),
+        GlassActionButton(
           onPressed: () => showDialog<void>(
             context: context,
             builder: (context) => TokenPage(),
           ),
-          child: const Text('Token'),
-        ),
-        const SizedBox(height: 4),
-        TextButton(
-          onPressed: () async {
-            try {
-              await launchUrlString('https://www.pixiv.net/terms/?page=term');
-            } catch (e) {}
-          },
-          child: Text(strings.terms),
+          label: strings.login_with_token,
         ),
       ],
     );

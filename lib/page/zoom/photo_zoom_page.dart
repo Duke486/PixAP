@@ -1,3 +1,4 @@
+import 'package:pixez/component/nsfw_artwork.dart';
 import 'package:pixez/component/ipad_surface.dart';
 import 'dart:io';
 import 'package:pixez/page/picture/artwork_edge_back.dart';
@@ -39,7 +40,7 @@ class _PhotoZoomPageState extends State<PhotoZoomPage> {
   late final _pages = PageController(initialPage: widget.index);
   bool _toolsVisible = true;
   void _toggleTools(BuildContext context, TapUpDetails details, PhotoViewControllerValue value) {
-    if (usesIPadLayout(context)) setState(() => _toolsVisible = !_toolsVisible);
+    if (usesAppleControls(context)) setState(() => _toolsVisible = !_toolsVisible);
   }
 
   @override
@@ -47,16 +48,17 @@ class _PhotoZoomPageState extends State<PhotoZoomPage> {
     _loadSource = userSetting.zoomQuality == 1;
     _illusts = widget.illusts;
     _index = widget.index;
-    nowUrl = _illusts.pageCount == 1
-        ? (_loadSource
-              ? _illusts.metaSinglePage!.originalImageUrl!
-              : _illusts.imageUrls.large)
-        : (_loadSource
-              ? _illusts.metaPages[_index].imageUrls!.original
-              : _illusts.metaPages[_index].imageUrls!.large);
+    nowUrl = _imageUrlAt(_index);
 
     super.initState();
     initCache();
+  }
+
+  String _imageUrlAt(int index) {
+    final large = _illusts.pageCount == 1
+        ? _illusts.imageUrls.large
+        : _illusts.metaPages[index].imageUrls?.large ?? _illusts.imageUrls.large;
+    return _loadSource ? _illusts.originalImageUrlAt(index) ?? large : large;
   }
 
   @override
@@ -85,15 +87,13 @@ class _PhotoZoomPageState extends State<PhotoZoomPage> {
     return ArtworkEdgeBack(child: Builder(
       builder: (context) {
         if (_illusts.pageCount == 1) {
-          final url = _loadSource
-              ? _illusts.metaSinglePage!.originalImageUrl!
-              : _illusts.imageUrls.large;
+          final url = _imageUrlAt(0);
           return Scaffold(
             extendBody: true,
             extendBodyBehindAppBar: true,
             backgroundColor: Colors.black,
             bottomNavigationBar: _buildBottom(context),
-            body: Container(
+            body: NsfwArtwork(_illusts, child: Container(
               child: PhotoView(
                 onTapUp: _toggleTools,
                 filterQuality: FilterQuality.high,
@@ -102,7 +102,7 @@ class _PhotoZoomPageState extends State<PhotoZoomPage> {
                 imageProvider: PixivProvider.url(url),
                 loadingBuilder: (context, event) => _buildLoading(event),
               ),
-            ),
+            )),
           );
         } else {
           return Scaffold(
@@ -110,7 +110,7 @@ class _PhotoZoomPageState extends State<PhotoZoomPage> {
             bottomNavigationBar: _buildBottom(context),
             extendBodyBehindAppBar: true,
             backgroundColor: Colors.black,
-            body: ScrollConfiguration(
+            body: NsfwArtwork(_illusts, child: ScrollConfiguration(
               // Flutter excludes mouse from dragDevices by default (#1308).
               behavior: ScrollConfiguration.of(context).copyWith(
                 dragDevices: {
@@ -125,9 +125,7 @@ class _PhotoZoomPageState extends State<PhotoZoomPage> {
                 scrollPhysics: const BouncingScrollPhysics(),
                 pageController: _pages,
                 builder: (BuildContext context, int index) {
-                  final url = _loadSource
-                      ? _illusts.metaPages[index].imageUrls!.original
-                      : _illusts.metaPages[index].imageUrls!.large;
+                  final url = _imageUrlAt(index);
                   return PhotoViewGalleryPageOptions(
                     onTapUp: _toggleTools,
                     imageProvider: PixivProvider.url(url),
@@ -138,9 +136,7 @@ class _PhotoZoomPageState extends State<PhotoZoomPage> {
                 },
                 itemCount: _illusts.metaPages.length,
                 onPageChanged: (index) async {
-                  nowUrl = _loadSource
-                      ? _illusts.metaPages[index].imageUrls!.original
-                      : _illusts.metaPages[index].imageUrls!.large;
+                  nowUrl = _imageUrlAt(index);
                   setState(() {
                     _index = index;
                     shareShow = false;
@@ -155,7 +151,7 @@ class _PhotoZoomPageState extends State<PhotoZoomPage> {
                 },
                 loadingBuilder: (context, event) => _buildLoading(event),
               ),
-            ),
+            )),
           );
         }
       },
@@ -175,9 +171,9 @@ class _PhotoZoomPageState extends State<PhotoZoomPage> {
 
   Widget _group(BuildContext context, List<Widget> children) {
     final row = Row(mainAxisSize: MainAxisSize.min, children: children);
-    if (!usesIPadLayout(context)) return row;
+    if (!usesAppleControls(context)) return row;
     return DecoratedBox(decoration: const ShapeDecoration(color: Colors.black54, shape: StadiumBorder()),
-      child: IPadSurface(darkGlass: true, child: Padding(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2), child: row)));
+      child: IPadSurface(darkGlass: true, child: Padding(padding: EdgeInsets.symmetric(horizontal: isIPhone ? 2 : 12, vertical: 2), child: row)));
   }
 
   Widget _toolbar(BuildContext context) {
@@ -205,8 +201,7 @@ class _PhotoZoomPageState extends State<PhotoZoomPage> {
     }
     return BottomAppBar(
       color: Colors.transparent,
-      child: Visibility(
-        visible: true,
+      child: _fitToolbar(context,
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -217,12 +212,12 @@ class _PhotoZoomPageState extends State<PhotoZoomPage> {
                   icon: Icon(Icons.photo_library_outlined, color: Colors.white),
                   onPressed: () {},
                 ),
-                Text(
+                Padding(padding: const EdgeInsetsDirectional.only(end: 8), child: Text(
                   "${_index + 1}/${widget.illusts.pageCount}",
                   style: Theme.of(
                     context,
                   ).textTheme.bodyLarge!.copyWith(color: Colors.white),
-                ),
+                )),
               ]),
             _group(context, [
                 IconButton(
@@ -325,6 +320,14 @@ class _PhotoZoomPageState extends State<PhotoZoomPage> {
         ),
       ),
     );
+  }
+
+  Widget _fitToolbar(BuildContext context, {required Widget child}) {
+    if (!isIPhone) return child;
+    return LayoutBuilder(builder: (context, box) => SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: ConstrainedBox(constraints: BoxConstraints(minWidth: box.maxWidth), child: child),
+    ));
   }
 
   Center _buildLoading(ImageChunkEvent? event) {

@@ -1,3 +1,4 @@
+import 'package:pixez/component/glass_form_control.dart';
 /*
  * Copyright (C) 2020. by perol_notsf, All rights reserved
  *
@@ -59,7 +60,7 @@ class _ShieldPageState extends State<ShieldPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
-                Card(
+                SettingsSection(
                   margin: const EdgeInsets.fromLTRB(8, 8, 8, 0),
                   child: Column(
                     children: [
@@ -85,7 +86,7 @@ class _ShieldPageState extends State<ShieldPage> {
                           }
                         },
                       ),
-                      SwitchListTile(
+                      glassSwitchTile(SwitchListTile(
                         secondary: Icon(Icons.visibility_off_outlined),
                         title: Text(
                           I18n.of(
@@ -97,7 +98,7 @@ class _ShieldPageState extends State<ShieldPage> {
                           HapticUtil.light();
                           muteStore.changeBanAI(v);
                         },
-                      ),
+                      )),
                     ],
                   ),
                 ),
@@ -166,7 +167,7 @@ class _ShieldPageState extends State<ShieldPage> {
     required List<Widget> children,
     VoidCallback? onAdd,
   }) {
-    return Card(
+    return SettingsSection(
       margin: const EdgeInsets.fromLTRB(8, 16, 8, 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,

@@ -122,7 +122,7 @@ class _RankPageState extends State<RankPage>
           child: LayoutBuilder(
             builder: (context, constraints) {
               final controller = _tabs = DefaultTabController.of(context);
-              final tablet = usesIPadLayout(context);
+              final tablet = usesAppleControls(context);
               final media = MediaQuery.of(context);
               final scheme = Theme.of(context).colorScheme;
               final reselectStyle = Theme.of(context).textTheme.labelLarge;
@@ -196,7 +196,7 @@ class _RankPageState extends State<RankPage>
                   painter.height.ceilToDouble() + 8,
                 );
                 painter.dispose();
-                if (rowWidth > 0 && rowWidth + spacing + labelWidth > width) {
+                if (!isIPhone && rowWidth > 0 && rowWidth + spacing + labelWidth > width) {
                   rows.add([]);
                   rowWidth = 0;
                 }
@@ -300,6 +300,7 @@ class _RankPageState extends State<RankPage>
                   Padding(
                     padding: EdgeInsets.only(top: tablet ? 0 : top),
                     child: TabBarView(
+                      physics: const NeverScrollableScrollPhysics(),
                       children: [
                         for (final (i, mode) in modes.indexed)
                           RankModePage(
@@ -330,14 +331,20 @@ class _RankPageState extends State<RankPage>
                             child: Material(
                               type: MaterialType.transparency,
                               child: Padding(
-                                padding: const EdgeInsets.only(
+                                padding: EdgeInsets.only(
+                                  right: isIPhone ? 8 : 0,
                                   left: outerInset,
                                 ),
                                 child: Row(
                                   children: [
                                     Expanded(
                                       child: Center(
-                                        child: tablet ? nativePicker : picker,
+                                        child: isIPhone
+                                            ? _PhoneRankStrip(
+                                                contentWidth: 6 + widths.fold<double>(0, (sum, w) => sum + w),
+                                                child: nativePicker,
+                                              )
+                                            : tablet ? nativePicker : picker,
                                       ),
                                     ),
                                     ...actions,
@@ -477,4 +484,49 @@ class _RankPageState extends State<RankPage>
 
   @override
   bool get wantKeepAlive => true;
+}
+
+class _PhoneRankStrip extends StatefulWidget {
+  const _PhoneRankStrip({required this.contentWidth, required this.child});
+  final double contentWidth;
+  final Widget child;
+
+  @override
+  State<_PhoneRankStrip> createState() => _PhoneRankStripState();
+}
+
+class _PhoneRankStripState extends State<_PhoneRankStrip> {
+  final _scroll = ScrollController();
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(builder: (context, box) {
+    final overflow = math.max(0.0, widget.contentWidth - box.maxWidth);
+    return AnimatedBuilder(
+      animation: _scroll,
+      child: SingleChildScrollView(controller: _scroll,
+        scrollDirection: Axis.horizontal, child: widget.child),
+      builder: (context, child) {
+        final offset = (_scroll.hasClients ? _scroll.offset : 0.0).clamp(0.0, overflow);
+        return Stack(children: [
+          child!,
+          if (offset > .5) _edge(context, start: true, hidden: offset),
+          if (overflow - offset > .5) _edge(context, start: false, hidden: overflow - offset),
+        ]);
+      },
+    );
+  });
+
+  Widget _edge(BuildContext context, {required bool start, required double hidden}) {
+    final left = start == (Directionality.of(context) == TextDirection.ltr);
+    return PositionedDirectional(key: ValueKey(start ? 'rank-blur-start' : 'rank-blur-end'),
+      start: start ? 0 : null, end: start ? null : 0,
+      width: math.min(9.0, hidden), top: 0, bottom: 0,
+      child: FadingBackdrop(direction: left ? AxisDirection.right : AxisDirection.left));
+  }
 }

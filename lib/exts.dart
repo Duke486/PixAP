@@ -93,25 +93,9 @@ extension NovelExts on Novel {
 extension IllustExts on Illusts {
   String get commentCountText =>
       totalComments == null ? '' : '($totalComments)';
-  bool hIsNotAllow() {
-    if (userSetting.hIsNotAllow) {
-      // x_restrict: 1 = R-18, 2 = R-18G
-      if (xRestrict > 0) return true;
-      if (tags.any((tag) => tag.name.startsWith('R-18'))) {
-        return true;
-      }
-    }
-    return false;
-  }
+  bool get isNsfw => xRestrict > 0 || tags.any((tag) => tag.name.startsWith('R-18'));
 
-  bool hateByUser({bool ai = false, bool includeR18Setting = false}) {
-    if (includeR18Setting) {
-      if (userSetting.hIsNotAllow) {
-        for (final tag in tags) {
-          if (tag.name.startsWith('R-18')) return true;
-        }
-      }
-    }
+  bool hateByUser({bool ai = false}) {
     if (muteStore.banAIIllust && illustAIType == 2 && !ai) {
       return true;
     }

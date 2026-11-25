@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pixez/main.dart';
 import 'package:pixez/page/picture/artwork_edge_back.dart';
 
 void main() {
@@ -8,6 +9,9 @@ void main() {
     'only inward edge drags exit; center swipes page and edge taps pass through',
     (tester) async {
       debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+      final edgeBack = userSetting.artworkRightEdgeBack;
+      userSetting.artworkRightEdgeBack = true;
+      addTearDown(() => userSetting.artworkRightEdgeBack = edgeBack);
       addTearDown(() => debugDefaultTargetPlatformOverride = null);
       var index = 0, taps = 0;
       await tester.pumpWidget(
@@ -86,6 +90,11 @@ void main() {
       expect(find.text('open'), findsOneWidget);
       expect(index, lastIndex);
       await open();
+      userSetting.artworkRightEdgeBack = false;
+      await tester.pump();
+      await tester.dragFrom(const Offset(780, 200), const Offset(-180, 0));
+      await tester.pumpAndSettle();
+      expect(find.byType(PageView), findsOneWidget);
       await tester.dragFrom(const Offset(2, 200), const Offset(180, 0));
       await tester.pumpAndSettle();
       expect(find.text('open'), findsOneWidget);

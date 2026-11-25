@@ -15,7 +15,6 @@
 
 import 'dart:convert';
 import 'dart:io';
-
 import 'package:bot_toast/bot_toast.dart';
 import 'package:dio/dio.dart';
 import 'package:material_ui/material_ui.dart';
@@ -36,11 +35,15 @@ import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 class Leader {
-  static Future<void> pushUntilHome(BuildContext context) async {
+  static Future<void> pushUntilHome(BuildContext context, {bool startup = false}) async {
     Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
-      MaterialPageRoute(
-        builder: (context) => HelloPage(),
-      ),
+      startup && Platform.isIOS
+          ? PageRouteBuilder<void>(
+              transitionDuration: Duration.zero,
+              reverseTransitionDuration: Duration.zero,
+              pageBuilder: (_, _, _) => HelloPage(),
+            )
+          : MaterialPageRoute<void>(builder: (_) => HelloPage()),
       (route) => false,
     );
   }

@@ -1,14 +1,38 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:cupertino_ui/cupertino_ui.dart'
     show CupertinoPageTransitionsBuilder;
 import 'package:material_ui/material_ui.dart';
+import 'package:pixez/main.dart';
 
 final _rightEdgePreview = Expando<bool>();
 
 class ArtworkPageTransitionsBuilder extends CupertinoPageTransitionsBuilder {
   const ArtworkPageTransitionsBuilder();
+
+  @override
+  DelegatedTransitionBuilder? get delegatedTransition => _backgroundTransition;
+
+  static Widget? _backgroundTransition(BuildContext context,
+      Animation<double> animation, Animation<double> secondaryAnimation,
+      bool allowSnapshotting, Widget? child) {
+    final navigator = Navigator.of(context);
+    final standard = const CupertinoPageTransitionsBuilder().delegatedTransition!;
+    return ValueListenableBuilder<bool>(
+      valueListenable: navigator.userGestureInProgressNotifier,
+      builder: (context, dragging, _) {
+        final right = dragging && _rightEdgePreview[navigator] == true;
+        if (!right) return standard(context, animation, secondaryAnimation, allowSnapshotting, child) ?? const SizedBox.shrink();
+        // The departing page moves left. Reveal the right side of the page
+        // underneath, keeping its text and platform views in their own bounds.
+        return SlideTransition(position: secondaryAnimation.drive(
+          Tween(begin: Offset.zero, end: const Offset(1 / 3, 0))),
+          transformHitTests: false, child: child);
+      },
+    );
+  }
 
   @override
   Widget buildTransitions<T>(
@@ -163,9 +187,11 @@ class _ArtworkEdgeBackState extends State<ArtworkEdgeBack> {
           builder: (_, box) => Stack(
             fit: StackFit.expand,
             children: [
-              widget.child,
+              ClipRect(clipBehavior: Clip.hardEdge, child: widget.child),
               _edge(box.maxWidth, left: true),
-              _edge(box.maxWidth, left: false),
+              Observer(builder: (_) => userSetting.artworkRightEdgeBack
+                  ? _edge(box.maxWidth, left: false)
+                  : const SizedBox.shrink()),
             ],
           ),
         ),

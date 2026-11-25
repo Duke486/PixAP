@@ -1,3 +1,4 @@
+import 'package:pixez/component/glass_form_control.dart';
 /// The components of HSV Color Picker
 ///
 /// Try to create a Color Picker with other layout on your own :)
@@ -972,7 +973,11 @@ class _ColorPickerLabelState extends State<ColorPickerLabel> {
   @override
   Widget build(BuildContext context) {
     return Row(mainAxisAlignment: MainAxisAlignment.center, children: <Widget>[
-      DropdownButton(
+      if (usesNativeFormControls)
+        GlassChoice(labels: [for (final type in widget.colorLabelTypes) type.name.toUpperCase()],
+          index: widget.colorLabelTypes.indexOf(_colorType),
+          onSelect: (i) => setState(() => _colorType = widget.colorLabelTypes[i]))
+      else DropdownButton(
         value: _colorType,
         onChanged: (ColorLabelType? type) {
           if (type != null) setState(() => _colorType = type);
@@ -1099,6 +1104,10 @@ class ColorPickerSlider extends StatelessWidget {
     double localDx = getBox.globalToLocal(globalPosition).dx - 15.0;
     double progress =
         localDx.clamp(0.0, box.maxWidth - 30.0) / (box.maxWidth - 30.0);
+    changeProgress(progress);
+  }
+
+  void changeProgress(double progress) {
     switch (trackType) {
       case TrackType.hue:
         // 360 is the same as zero
@@ -1130,8 +1139,7 @@ class ColorPickerSlider extends StatelessWidget {
             hsvColor.toColor().withBlue((progress * 0xff).round())));
         break;
       case TrackType.alpha:
-        onColorChanged(hsvColor.withAlpha(
-            localDx.clamp(0.0, box.maxWidth - 30.0) / (box.maxWidth - 30.0)));
+        onColorChanged(hsvColor.withAlpha(progress));
         break;
     }
   }
@@ -1187,6 +1195,18 @@ class ColorPickerSlider extends StatelessWidget {
           break;
       }
 
+      if (usesNativeFormControls && box.maxWidth > 30) {
+        return Stack(alignment: Alignment.center, children: [
+          FractionallySizedBox(heightFactor: .2, widthFactor: 1,
+            child: Padding(padding: const EdgeInsets.symmetric(horizontal: 15),
+              child: ClipRRect(borderRadius: BorderRadius.circular(50),
+                child: CustomPaint(painter: TrackPainter(trackType, hsvColor))))),
+          Positioned.fill(child: GlassFormControl('slider', {
+            'value': (thumbOffset - 15) / (box.maxWidth - 30), 'clearTrack': true,
+            'label': trackType.name,
+          }, (value) => changeProgress(value as double))),
+        ]);
+      }
       return CustomMultiChildLayout(
         delegate: _SliderLayout(),
         children: <Widget>[

@@ -31,7 +31,7 @@ class _SortGroupState extends State<SortGroup> {
 
   @override
   Widget build(BuildContext context) {
-    if (usesIPadLayout(context)) {
+    if (usesAppleControls(context)) {
       return GlassSegmentPicker(
         compact: widget.compact,
         labels: widget.children,

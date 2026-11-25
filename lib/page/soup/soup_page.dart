@@ -1,6 +1,6 @@
 import 'package:pixez/i18n.dart';
 import 'article_reader.dart';
-import 'dart:ui' as ui;
+import 'package:pixez/component/progressive_toolbar_blur.dart';
 import 'package:pixez/component/ipad_surface.dart';
 import 'package:pixez/page/hello/hello_page.dart';
 /*
@@ -61,7 +61,7 @@ class _SoupPageState extends State<SoupPage> {
     return Scaffold(
       body: Observer(
         builder: (context) {
-          if (usesIPadLayout(context)) {
+          if (usesAppleControls(context)) {
             final item = widget.spotlight;
             final coverOverlap = item != null &&
                     MediaQuery.orientationOf(context) == Orientation.landscape
@@ -74,16 +74,8 @@ class _SoupPageState extends State<SoupPage> {
                 coverOverlap: coverOverlap,
                 toolbar: SizedBox(height: MediaQuery.paddingOf(context).top + kToolbarHeight,
                   child: Stack(fit: StackFit.expand, children: [
-                    IgnorePointer(child: Column(crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [for (final sigma in const [15.0, 12.0, 9.0, 6.0, 3.0, 1.0])
-                        Expanded(child: ClipRect(child: BackdropFilter(
-                          filter: ui.ImageFilter.blur(sigmaX: sigma, sigmaY: sigma),
-                          child: const SizedBox.expand())))])),
-                    IgnorePointer(child: DecoratedBox(decoration: BoxDecoration(gradient: LinearGradient(
-                      begin: Alignment.topCenter, end: Alignment.bottomCenter,
-                      colors: [Theme.of(context).scaffoldBackgroundColor.withValues(alpha: .68),
-                        Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0)])))),
-                    SafeArea(bottom: false, child: Row(children: [
+                    const ProgressiveToolbarBlur(),
+                    SafeArea(bottom: false, minimum: EdgeInsets.symmetric(horizontal: isIPhone ? 8 : 0), child: Row(children: [
                       const BackButton(),
                       Expanded(child: Text(item?.pureTitle ?? '', textAlign: TextAlign.center,
                         maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.titleMedium)),
@@ -116,7 +108,7 @@ class _SoupPageState extends State<SoupPage> {
     if (widget.spotlight == null) return SliverAppBar();
     return SliverAppBar(
       pinned: true,
-      backgroundColor: usesIPadLayout(context) ? Colors.transparent : null,
+      backgroundColor: usesAppleControls(context) ? Colors.transparent : null,
       surfaceTintColor: Colors.transparent,
       scrolledUnderElevation: 0,
       expandedHeight: 200.0,
@@ -154,7 +146,7 @@ class _SoupPageState extends State<SoupPage> {
   }
 
   Widget _articleCard(BuildContext context, Widget content) =>
-      usesIPadLayout(context)
+      usesAppleControls(context)
       ? Padding(padding: const EdgeInsets.symmetric(vertical: 7), child: IPadGalleryCard(radius: 28, scrolling: true, child: content))
       : Card(clipBehavior: Clip.antiAlias, child: content);
 
@@ -179,8 +171,8 @@ class _SoupPageState extends State<SoupPage> {
     }
     AmWork amWork = _soupStore.amWorks[index - 1];
     final card = InkWell(
-      overlayColor: usesIPadLayout(context) ? const WidgetStatePropertyAll(Colors.transparent) : null,
-      splashFactory: usesIPadLayout(context) ? NoSplash.splashFactory : null,
+      overlayColor: usesAppleControls(context) ? const WidgetStatePropertyAll(Colors.transparent) : null,
+      splashFactory: usesAppleControls(context) ? NoSplash.splashFactory : null,
       onTap: () {
         int id = int.parse(
           Uri.parse(
@@ -201,7 +193,7 @@ class _SoupPageState extends State<SoupPage> {
           children: <Widget>[
             ListTile(
               leading: PainterAvatar(
-                size: usesIPadLayout(context) ? const Size.square(44) : null,
+                size: usesAppleControls(context) ? const Size.square(44) : null,
                 url: amWork.userImage!,
                 id: int.parse(
                   Uri.parse(amWork.userLink!).pathSegments[Uri.parse(
@@ -213,7 +205,7 @@ class _SoupPageState extends State<SoupPage> {
               title: Text(amWork.title!),
               subtitle: Text(amWork.user!),
             ),
-            if (usesIPadLayout(context))
+            if (usesAppleControls(context))
               ArticleImage(image: PixivProvider.url(amWork.showImage!, preUrl: amWork.showImage),
                 retryLabel: I18n.of(context).retry)
             else PixivImage(amWork.showImage!),

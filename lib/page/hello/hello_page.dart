@@ -108,6 +108,7 @@ class _HelloPageState extends State<HelloPage> {
   late PageController _pageController;
   double? bottomNavigatorHeight = null;
   late List<Widget> _lists;
+  final _searchKey = GlobalKey<SearchPageState>();
   final _settingsKey = GlobalKey<SettingPageState>();
 
   @override
@@ -128,10 +129,11 @@ class _HelloPageState extends State<HelloPage> {
     _lists = <Widget>[
       Observer(
         builder: (context) {
-          if (accountStore.now != null)
-            return RecomSpolightPage();
-          else
-            return _guestPreview(context);
+          final account = accountStore.now;
+          if (account != null) {
+            return RecomSpolightPage(key: ValueKey(account.userId));
+          }
+          return _guestPreview(context, cacheHome: true);
         },
       ),
       Observer(
@@ -143,7 +145,7 @@ class _HelloPageState extends State<HelloPage> {
         },
       ),
       NewPage(),
-      SearchPage(),
+      SearchPage(key: _searchKey),
       SettingPage(key: _settingsKey),
     ];
     Constants.type = 0;
@@ -161,7 +163,8 @@ class _HelloPageState extends State<HelloPage> {
     initPlatformState();
   }
 
-  Widget _guestPreview(BuildContext context) => PreviewPage(
+  Widget _guestPreview(BuildContext context, {bool cacheHome = false}) => PreviewPage(
+    cacheHome: cacheHome,
     showLoginPrompt: usesIPadLayout(context) &&
         Prefer.getInt('language_num') != null,
   );
@@ -202,7 +205,7 @@ class _HelloPageState extends State<HelloPage> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final glassBar = Platform.isIOS && MediaQuery.of(context).size.shortestSide >= 600;
-        final wide = !glassBar && constraints.maxWidth > constraints.maxHeight;
+        final wide = !isIPhone && !glassBar && constraints.maxWidth > constraints.maxHeight;
         if (glassBar) {
           return Scaffold(
             body: _buildPageView(context),
@@ -227,7 +230,7 @@ class _HelloPageState extends State<HelloPage> {
                         fullScreenStore.fullscreen ? bottomNavigatorHeight! : 0,
                         0,
                       ),
-                      child: _buildNavigationBar(context),
+                      child: isIPhone ? _phoneNavigation(context) : _buildNavigationBar(context),
                     );
                   },
                 ),
@@ -370,11 +373,38 @@ class _HelloPageState extends State<HelloPage> {
 
   Widget _glassSideBar(BuildContext context) {
     final strings = I18n.of(context);
-    final control = NativeGlassControl(index: index,
+    final control = NativeGlassControl(index: index, pages: _pageController,
+          tint: Theme.of(context).colorScheme.primary,
           labels: [strings.home, strings.rank, strings.quick_view, strings.search, strings.more],
           onSelect: _selectRailDestination,
         );
     return SizedBox(width: _glassRailWidth, height: 294, child: control);
+  }
+
+  Widget _phoneNavigation(BuildContext context) {
+    final strings = I18n.of(context);
+    final labels = [strings.home, strings.rank, strings.quick_view, strings.search, strings.more];
+    final insets = MediaQuery.viewPaddingOf(context);
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        insets.left + 8,
+        0,
+        insets.right + 8,
+        (insets.bottom - 8).clamp(6.0, double.infinity).toDouble(),
+      ),
+      child: SizedBox(
+        width: double.infinity,
+        height: 62,
+        child: NativeGlassControl(
+          phoneTabs: true,
+          pages: _pageController,
+          index: index,
+          tint: Theme.of(context).colorScheme.primary,
+          labels: labels,
+          onSelect: _selectRailDestination,
+        ),
+      ),
+    );
   }
 
   Widget _buildNavigationBar(BuildContext context) {
@@ -429,6 +459,7 @@ class _HelloPageState extends State<HelloPage> {
       itemCount: 5,
       controller: _pageController,
       onPageChanged: (index) {
+        if (index == 3) _searchKey.currentState?.refreshGrid();
         setState(() {
           this.index = index;
         });
@@ -436,14 +467,14 @@ class _HelloPageState extends State<HelloPage> {
       },
       itemBuilder: (context, index) {
         final page = _lists[index];
-        if (!Platform.isIOS || MediaQuery.sizeOf(context).shortestSide < 600) return page;
+        if (!Platform.isIOS || (!usesIPadLayout(context) && !(isIPhone && index == 0))) return page;
         if (index >= 1 && index <= 3) {
           return Padding(padding: const EdgeInsets.only(left: 82), child: page);
         }
         if (index != 0) return Padding(padding: const EdgeInsets.symmetric(horizontal: 82), child: page);
         final top = MediaQuery.paddingOf(context).top;
         return Stack(fit: StackFit.expand, children: [
-          Padding(padding: const EdgeInsets.only(left: 82), child: page),
+          if (isIPhone) page else Padding(padding: const EdgeInsets.only(left: 82), child: page),
           if (top > 0)
             Positioned(
               top: 0, left: 0, right: 0, height: top,

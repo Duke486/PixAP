@@ -18,8 +18,7 @@ class _RecomUserRoadState extends State<RecomUserRoad> {
 
   @override
   void initState() {
-    _recomUserStore = widget.recomUserStore ?? RecomUserStore(null)
-      ..fetch();
+    _recomUserStore = widget.recomUserStore ?? (RecomUserStore(null)..fetch());
     super.initState();
   }
 

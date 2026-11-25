@@ -228,7 +228,7 @@ class _JobPageState extends State<JobPage> with SingleTickerProviderStateMixin {
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [_buildTopChip(), Expanded(child: _body())],
+          children: [Center(child: _buildTopChip()), Expanded(child: _body())],
         ),
       ),
     );
@@ -300,7 +300,7 @@ class _JobPageState extends State<JobPage> with SingleTickerProviderStateMixin {
 
   Widget _buildTopChip() {
     return Padding(
-      padding: const EdgeInsets.only(left: 16.0),
+      padding: const EdgeInsets.symmetric(horizontal: 12.0),
       child: SortGroup(
         children: [
           I18n.of(context).all,

@@ -14,15 +14,25 @@
  *
  */
 
+import 'dart:async';
+import 'dart:io';
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 import 'package:easy_refresh/easy_refresh.dart';
 import 'package:mobx/mobx.dart';
+import 'package:pixez/app_widget_plugin.dart';
+import 'package:pixez/er/hoster.dart';
+import 'package:pixez/er/image_cache_manager.dart';
+import 'package:pixez/er/lprinter.dart';
 import 'package:pixez/exts.dart';
 import 'package:pixez/main.dart';
+import 'package:pixez/store/user_setting.dart';
 import 'package:pixez/models/glance_illust_persist.dart';
 import 'package:pixez/models/illust.dart';
 import 'package:pixez/models/recommend.dart';
 import 'package:pixez/network/api_client.dart';
+import 'package:pixez/page/hello/setting/demo_mode.dart';
 import 'package:pixez/page/picture/illust_store.dart';
 
 part 'lighting_store.g.dart';
@@ -72,9 +82,6 @@ abstract class _LightingStoreBase with Store {
   @observable
   bool refreshing = false;
 
-  GlanceIllustPersistProvider glanceIllustPersistProvider =
-      GlanceIllustPersistProvider();
-
   dispose() {
     // iStores.forEach((element) {
     //   final provider = ExtendedNetworkImageProvider(
@@ -112,6 +119,23 @@ abstract class _LightingStoreBase with Store {
   }
 
   bool _lock = false;
+  int _feedGeneration = 0;
+
+  void replaceRecommendations(Recommend? recommend, {bool publishWidget = false}) {
+    _feedGeneration++;
+    runInAction(() {
+      nextUrl = recommend?.nextUrl;
+      iStores.clear();
+      if (recommend != null) {
+        iStores.addAll(recommend.illusts.map((illust) => IllustStore(illust.id, illust)));
+      }
+    });
+    final glanceKey = source.glanceKey;
+    if (publishWidget && recommend != null && glanceKey != null &&
+        glanceKey.isNotEmpty && Platform.isIOS && !DemoMode.active) {
+      unawaited(_publishWidgetSource(glanceKey, recommend.illusts));
+    }
+  }
 
   @action
   Future<bool> fetch({String? url, bool force = false}) async {
@@ -129,23 +153,8 @@ abstract class _LightingStoreBase with Store {
       }
 
       Recommend recommend = Recommend.fromJson(result!.data);
-      //https://app-api.pixiv.net/v1/user/illusts?filter=for_android&user_id=${user_id}&type=illust&offset=30
-      nextUrl = recommend.nextUrl;
-      iStores.clear();
-      iStores.addAll(recommend.illusts.map((e) => IllustStore(e.id, e)));
-      String? glanceKey = source.glanceKey;
+      replaceRecommendations(recommend, publishWidget: true);
       refreshing = false;
-      if (glanceKey != null && glanceKey.isNotEmpty) {
-        await glanceIllustPersistProvider.open();
-        await glanceIllustPersistProvider.insertAll(
-          recommend.illusts
-              .where((element) => !element.hateByUser(includeR18Setting: true))
-              .toGlancePersist(
-                glanceKey,
-                DateTime.now().microsecondsSinceEpoch,
-              ),
-        );
-      }
       easyRefreshController?.finishRefresh(IndicatorResult.success);
       return true;
     } catch (e) {
@@ -155,6 +164,54 @@ abstract class _LightingStoreBase with Store {
       return false;
     } finally {
       _lock = false;
+    }
+  }
+
+  Future<void> _publishWidgetSource(
+    String type,
+    List<Illusts> illustrations,
+  ) async {
+    try {
+      final time = DateTime.now().microsecondsSinceEpoch;
+      final entries = illustrations
+          .where(
+            (illustration) =>
+                !illustration.hateByUser() &&
+                (!illustration.isNsfw ||
+                    userSetting.nsfwDisplayMode == NsfwDisplayMode.show),
+          )
+          .toGlancePersist(type, time);
+      final provider = GlanceIllustPersistProvider();
+      await provider.open();
+      try {
+        await provider.replaceSource(type, entries);
+        final sample = entries.toList()..shuffle();
+        final thumbnails = <int, Uint8List>{};
+        await Future.wait(
+          sample.take(6).map((entry) async {
+            try {
+              final file = await DioCacheManager.instance
+                  .getSingleFile(
+                    entry.pictureUrl,
+                    headers: Hoster.header(url: entry.pictureUrl),
+                  )
+                  .timeout(const Duration(seconds: 6));
+              final thumbnail = await AppWidgetPlugin.makeThumbnail(file.path);
+              if (thumbnail != null) thumbnails[entry.illustId] = thumbnail;
+            } catch (error) {
+              LPrinter.d('Failed to prepare widget thumbnail: $error');
+            }
+          }),
+        );
+        if (thumbnails.isNotEmpty) {
+          await provider.saveThumbnails(type, time, thumbnails);
+        }
+      } finally {
+        await provider.close();
+      }
+      await AppWidgetPlugin.reload(updatedSource: type);
+    } catch (error) {
+      LPrinter.d('Failed to publish widget cache: $error');
     }
   }
 
@@ -168,10 +225,15 @@ abstract class _LightingStoreBase with Store {
   Future<bool> fetchNext() async {
     if (_lock) return false;
     _lock = true;
+    final generation = _feedGeneration;
     errorMessage = null;
     try {
       if (nextUrl != null && nextUrl!.isNotEmpty) {
         Response result = await apiClient.getNext(nextUrl!);
+        if (generation != _feedGeneration) {
+          easyRefreshController?.finishLoad(IndicatorResult.none);
+          return false;
+        }
         Recommend recommend = Recommend.fromJson(result.data);
         nextUrl = recommend.nextUrl;
         var map = recommend.illusts.map((e) => IllustStore(e.id, e));
@@ -186,7 +248,8 @@ abstract class _LightingStoreBase with Store {
       }
       return true;
     } catch (e) {
-      easyRefreshController?.finishLoad(IndicatorResult.fail);
+      easyRefreshController?.finishLoad(generation == _feedGeneration
+          ? IndicatorResult.fail : IndicatorResult.none);
       return false;
     } finally {
       _lock = false;

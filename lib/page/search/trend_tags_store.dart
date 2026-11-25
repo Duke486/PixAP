@@ -14,7 +14,8 @@
  *
  */
 
-import 'package:dio/dio.dart';
+import 'dart:convert';
+import 'package:pixez/er/prefer.dart';
 import 'package:mobx/mobx.dart';
 import 'package:pixez/main.dart';
 import 'package:pixez/models/ban_tag.dart';
@@ -33,18 +34,73 @@ abstract class _TrendTagsStoreBase with Store {
 
   /// Trend tags without the ones muted by the user.
   List<TrendTags> get visibleTrendTags => trendTags
-      .where((tag) => !muteStore.banTags.any((ban) => ban.isRegexMatch(tag.tag)))
+      .where(
+        (tag) => !muteStore.banTags.any((ban) => ban.isRegexMatch(tag.tag)),
+      )
       .toList();
 
+  String? _loadedKey;
+  String? _snapshot;
+  Future<void>? _pending;
+  int _generation = 0;
+
+  String? get _key {
+    final id = accountStore.now?.userId;
+    return id == null ? null : 'search_grid_v1.${id}.${userSetting.locale}';
+  }
+
   @action
-  fetch() async {
+  Future<void> fetch() async {
+    final key = _key;
+    if (key != _loadedKey) {
+      _generation++;
+      _pending = null;
+      _loadedKey = key;
+      _snapshot = key == null ? null : Prefer.getString(key);
+      trendTags = ObservableList();
+      if (_snapshot != null) {
+        try {
+          trendTags = ObservableList.of(
+            TrendingTag.fromJson(jsonDecode(_snapshot!)).trend_tags,
+          );
+        } catch (_) {
+          _snapshot = null;
+        }
+      }
+    }
+    if (key == null) return;
+    final generation = _generation;
     try {
-      Response response = await apiClient.getIllustTrendTags();
-      TrendingTag trendingTag = TrendingTag.fromJson(response.data);
-      trendTags.clear();
-      trendTags.addAll(trendingTag.trend_tags);
-    } catch (e) {
-      print(e);
+      await (_pending ??= _refresh(key, generation));
+    } finally {
+      if (_generation == generation) _pending = null;
+    }
+  }
+
+  Future<void> _refresh(String key, int generation) async {
+    try {
+      final response = await apiClient.getIllustTrendTags(force: true);
+      if (generation != _generation || key != _key) return;
+      final tags = TrendingTag.fromJson(response.data).trend_tags;
+      final snapshot = jsonEncode({
+        'trend_tags': [
+          for (final tag in tags)
+            {
+              'tag': tag.tag,
+              'translated_name': tag.translatedName,
+              'illust': {
+                'id': tag.illust.id,
+                'image_urls': tag.illust.imageUrls.toJson(),
+              },
+            },
+        ],
+      });
+      if (snapshot == _snapshot) return;
+      runInAction(() => trendTags = ObservableList.of(tags));
+      await Prefer.setString(key, snapshot);
+      if (generation == _generation) _snapshot = snapshot;
+    } catch (error) {
+      print('Search grid refresh failed: $error');
     }
   }
 }

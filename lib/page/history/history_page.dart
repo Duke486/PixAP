@@ -15,6 +15,7 @@
  */
 
 import 'dart:math';
+import 'package:pixez/component/ipad_surface.dart';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -44,7 +45,7 @@ class HistoryPage extends HookConsumerWidget {
     final reIllust = data.reversed.toList();
     if (reIllust.isNotEmpty) {
       return LayoutBuilder(builder: (context, snapshot) {
-        final rowCount = max(2, (snapshot.maxWidth / 200).floor());
+        final rowCount = isIPhone ? 3 : max(2, (snapshot.maxWidth / 200).floor());
         return GridView.builder(
             itemCount: reIllust.length,
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -135,7 +136,7 @@ class HistoryPage extends HookConsumerWidget {
           )
         ],
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: GalleryFavoriteButton(heroTag: 'illust-history-clear',
         child: Icon(Icons.delete),
         onPressed: () {
           _cleanAll(context, ref);

@@ -18,13 +18,14 @@ import 'package:pixez/page/hello/setting/demo_mode.dart';
 
 import 'dart:async';
 import 'dart:io';
-import 'package:path/path.dart' as Path;
+import 'dart:typed_data';
 
 import 'package:json_annotation/json_annotation.dart';
 import 'package:path/path.dart';
+import 'package:pixez/app_widget_plugin.dart';
+import 'package:pixez/er/lprinter.dart';
 import 'package:pixez/models/illust.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'package:path_provider_foundation/path_provider_foundation.dart';
 
 part 'glance_illust_persist.g.dart';
 
@@ -103,11 +104,12 @@ final String ctitle = "title";
 final String cuser_name = "user_name";
 final String ctime = "time";
 final String ctype = "type";
+const _thumbnailColumn = 'thumbnail';
 
 class GlanceIllustPersistProvider {
   late Database db;
 
-  void _createTableV2(Batch batch) {
+  void _createTable(Batch batch) {
     batch.execute('''
 create table $tableIllustPersist ( 
   $cid integer primary key autoincrement, 
@@ -119,45 +121,40 @@ create table $tableIllustPersist (
   $clarge_url text,
   $coriginal_url text,
   $cuser_name text,
-    $ctime integer not null
+  $ctime integer not null,
+  $_thumbnailColumn blob
   )
 ''');
   }
 
   Future<String> getPath() async {
-    if (DemoMode.active) return demoDatabaseDirectory();
-    if (Platform.isIOS) {
-      try {
-        final PathProviderFoundation providerFoundation =
-            PathProviderFoundation();
-        final path = await providerFoundation.getContainerPath(
-          appGroupIdentifier: "group.com.duke486.pixez.ipad",
-        );
-        final directory = Directory(Path.join(path!, "DB"));
-        if (!(await directory.exists())) {
-          await directory.create(recursive: true);
-        }
-        return directory.path;
-      } catch (e) {}
+    if (Platform.isIOS && !DemoMode.active) {
+      return AppWidgetPlugin.databaseDirectory();
     }
-    return await demoDatabaseDirectory();
+    return demoDatabaseDirectory();
   }
 
-  Future open() async {
+  Future<void> open() async {
     String databasesPath = (await getPath());
     String path = join(databasesPath, 'glanceillustpersist.db');
     db = await openDatabase(
       path,
-      version: 2,
+      version: 3,
+      singleInstance: false,
       onCreate: (Database db, int version) async {
         var batch = db.batch();
-        _createTableV2(batch);
+        _createTable(batch);
         await batch.commit();
       },
       onUpgrade: (db, oldVersion, newVersion) async {
         var batch = db.batch();
         if (oldVersion < 2) {
           _updateTableV1ToV2(batch);
+        }
+        if (oldVersion < 3) {
+          batch.execute(
+            'ALTER TABLE $tableIllustPersist ADD $_thumbnailColumn BLOB',
+          );
         }
         await batch.commit();
       },
@@ -197,6 +194,37 @@ create table $tableIllustPersist (
     }
     await batch.commit();
     return 0;
+  }
+
+  Future<void> replaceSource(
+    String type,
+    List<GlanceIllustPersist> entries,
+  ) async {
+    await db.transaction((transaction) async {
+      final batch = transaction.batch();
+      batch.delete(tableIllustPersist, where: '$ctype = ?', whereArgs: [type]);
+      for (final entry in entries) {
+        batch.insert(tableIllustPersist, entry.toJson());
+      }
+      await batch.commit(noResult: true);
+    });
+  }
+
+  Future<void> saveThumbnails(
+    String type,
+    int time,
+    Map<int, Uint8List> thumbnails,
+  ) async {
+    final batch = db.batch();
+    for (final entry in thumbnails.entries) {
+      batch.update(
+        tableIllustPersist,
+        {_thumbnailColumn: entry.value},
+        where: '$ctype = ? AND $ctime = ? AND $cillust_id = ?',
+        whereArgs: [type, time, entry.key],
+      );
+    }
+    await batch.commit(noResult: true);
   }
 
   Future<GlanceIllustPersist?> getAccount(int illust_id) async {
@@ -285,5 +313,20 @@ create table $tableIllustPersist (
 
   Future deleteAll() async {
     return await db.delete(tableIllustPersist);
+  }
+
+  static Future<void> clearCache() async {
+    final provider = GlanceIllustPersistProvider();
+    try {
+      await provider.open();
+      try {
+        await provider.deleteAll();
+      } finally {
+        await provider.close();
+      }
+      await AppWidgetPlugin.reload();
+    } catch (error) {
+      LPrinter.d('Failed to clear widget cache: $error');
+    }
   }
 }

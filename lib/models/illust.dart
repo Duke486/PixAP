@@ -52,19 +52,24 @@ class MetaPagesImageUrls {
 }
 
 extension IllustsExtension on Illusts {
+  String? originalImageUrlAt(int index) {
+    final original = metaPages.elementAtOrNull(index)?.imageUrls?.original;
+    if (original?.isNotEmpty == true) return original;
+    final singlePageOriginal = index == 0 ? metaSinglePage?.originalImageUrl : null;
+    return singlePageOriginal?.isNotEmpty == true ? singlePageOriginal : null;
+  }
+
   String get illustDetailUrl => switch (userSetting.pictureQuality) {
         0 => imageUrls.medium,
         1 => imageUrls.large,
-        2 => metaPages.firstOrNull?.imageUrls?.original ??
-            metaSinglePage!.originalImageUrl!,
+        2 => originalImageUrlAt(0) ?? imageUrls.large,
         _ => imageUrls.medium,
       };
 
   String get managaDetailUrl => switch (userSetting.mangaQuality) {
         0 => imageUrls.medium,
         1 => imageUrls.large,
-        2 => metaPages.firstOrNull?.imageUrls?.original ??
-            metaSinglePage!.originalImageUrl!,
+        2 => originalImageUrlAt(0) ?? imageUrls.large,
         _ => imageUrls.medium,
       };
 
@@ -72,7 +77,7 @@ extension IllustsExtension on Illusts {
       switch (userSetting.pictureQuality) {
         0 => metaPages[index].imageUrls!.medium,
         1 => metaPages[index].imageUrls!.large,
-        2 => metaPages[index].imageUrls!.original,
+        2 => originalImageUrlAt(index) ?? metaPages[index].imageUrls?.large ?? imageUrls.large,
         _ => metaPages[index].imageUrls!.medium,
       };
 
@@ -80,7 +85,7 @@ extension IllustsExtension on Illusts {
       switch (userSetting.mangaQuality) {
         0 => metaPages[index].imageUrls!.medium,
         1 => metaPages[index].imageUrls!.large,
-        2 => metaPages[index].imageUrls!.original,
+        2 => originalImageUrlAt(index) ?? metaPages[index].imageUrls?.large ?? imageUrls.large,
         _ => metaPages[index].imageUrls!.medium,
       };
 }

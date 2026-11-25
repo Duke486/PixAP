@@ -14,6 +14,15 @@ import WidgetKit
     // https://music.apple.com/cn/album/morning-dew/1686069386?i=1686069387
     func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
         GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
+        let device = FlutterMethodChannel(name: "pixez/device",
+            binaryMessenger: engineBridge.applicationRegistrar.messenger())
+        device.setMethodCallHandler { call, result in
+            guard call.method == "isPhone" else {
+                result(FlutterMethodNotImplemented)
+                return
+            }
+            result(UIDevice.current.userInterfaceIdiom == .phone)
+        }
         let session = FlutterMethodChannel(name: "pixez/demoSession",
             binaryMessenger: engineBridge.applicationRegistrar.messenger())
         session.setMethodCallHandler { [weak self] call, result in
@@ -59,12 +68,32 @@ import WidgetKit
             
         })
         if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "PixezGlassRail") {
+            registrar.register(FadingBackdropFactory(), withId: "pixez/fadingBackdrop")
+            registrar.register(FormControlFactory(registrar.messenger()), withId: "pixez/formControl")
             registrar.register(GlassSurfaceFactory(), withId: "pixez/glassSurface")
             registrar.register(GlassRailFactory(registrar.messenger()), withId: "pixez/glassRail")
         }
         DocumentPlugin.bind(engineBridge)
         DeepLinkPlugin.register(with: engineBridge.pluginRegistry.registrar(forPlugin: "DeepLinkPlugin")!)
         bindAppWidgetChannel(engineBridge)
+        let colors = FlutterMethodChannel(name: "pixez/themeColor", binaryMessenger: engineBridge.applicationRegistrar.messenger())
+        colors.setMethodCallHandler { [weak self] call, result in
+            guard call.method == "pick", let value = call.arguments as? NSNumber,
+                  let presenter = self?.visibleViewController(), !(presenter is UIColorPickerViewController) else {
+                result(nil)
+                return
+            }
+            let picker = ThemeColorPicker()
+            picker.complete = result
+            picker.delegate = picker
+            picker.supportsAlpha = false
+            let rgb = value.uint32Value
+            picker.selectedColor = UIColor(red: CGFloat(rgb >> 16 & 255) / 255,
+                green: CGFloat(rgb >> 8 & 255) / 255, blue: CGFloat(rgb & 255) / 255, alpha: 1)
+            picker.modalPresentationStyle = .pageSheet
+            presenter.present(picker, animated: true)
+            picker.presentationController?.delegate = picker
+        }
         bindRankDatePicker(engineBridge)
         bindSauceNaoImagePreparation(engineBridge)
         let historyChannel = FlutterMethodChannel(
@@ -114,7 +143,9 @@ import WidgetKit
             }
             DispatchQueue.global(qos: .userInitiated).async {
                 let jpeg = autoreleasepool {
-                    Self.prepareSauceNaoJPEG(at: URL(fileURLWithPath: path))
+                    Self.prepareThumbnailJPEG(
+                        at: URL(fileURLWithPath: path), maxPixelSize: 1440, compressionQuality: 0.78
+                    )
                 }
                 DispatchQueue.main.async {
                     guard let jpeg else {
@@ -153,17 +184,17 @@ import WidgetKit
         presenter.present(picker, animated: true)
     }
 
-    private static func prepareSauceNaoJPEG(at url: URL) -> Data? {
+    private static func prepareThumbnailJPEG(at url: URL, maxPixelSize: Int, compressionQuality: CGFloat) -> Data? {
         let options: [CFString: Any] = [
             kCGImageSourceCreateThumbnailFromImageAlways: true,
             kCGImageSourceCreateThumbnailWithTransform: true,
-            kCGImageSourceThumbnailMaxPixelSize: 1440,
+            kCGImageSourceThumbnailMaxPixelSize: maxPixelSize,
             kCGImageSourceShouldCache: false,
         ]
         guard let source = CGImageSourceCreateWithURL(url as CFURL, nil),
               let image = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary)
         else { return nil }
-        return UIImage(cgImage: image).jpegData(compressionQuality: 0.78)
+        return UIImage(cgImage: image).jpegData(compressionQuality: compressionQuality)
     }
 
     private func bindRankDatePicker(_ engineBridge: FlutterImplicitEngineBridge) {
@@ -198,23 +229,47 @@ import WidgetKit
         let appWidgetChannel = FlutterMethodChannel(name: "com.perol.dev/app_widget",
                                                     binaryMessenger: engineBridge.applicationRegistrar.messenger())
         appWidgetChannel.setMethodCallHandler { call, result in
-            guard call.method == "setRecommendType" else {
+            let appGroup = "group.com.duke486.pixez.ipad"
+            switch call.method {
+            case "databaseDirectory":
+                guard let container = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroup) else {
+                    result(FlutterError(code: "widget_container_unavailable", message: nil, details: nil))
+                    return
+                }
+                let directory = container.appendingPathComponent("DB", isDirectory: true)
+                do {
+                    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+                    result(directory.path)
+                } catch {
+                    result(FlutterError(code: "widget_directory_unavailable", message: error.localizedDescription, details: nil))
+                }
+            case "makeThumbnail":
+                guard let path = call.arguments as? String else {
+                    result(FlutterError(code: "bad_args", message: "path is required", details: nil))
+                    return
+                }
+                DispatchQueue.global(qos: .utility).async {
+                    let data = autoreleasepool {
+                        Self.prepareThumbnailJPEG(
+                            at: URL(fileURLWithPath: path), maxPixelSize: 1024, compressionQuality: 0.82
+                        )
+                    }
+                    DispatchQueue.main.async { result(data.map { FlutterStandardTypedData(bytes: $0) }) }
+                }
+            case "setRecommendType":
+                guard let args = call.arguments as? [String: Any], let type = args["type"] as? String else {
+                    result(FlutterError(code: "bad_args", message: "type is required", details: nil))
+                    return
+                }
+                UserDefaults(suiteName: appGroup)?.set(type, forKey: "widget_illust_type")
+                WidgetCenter.shared.reloadTimelines(ofKind: "Tinker")
+                result(nil)
+            default:
                 result(FlutterMethodNotImplemented)
-                return
             }
-            guard let args = call.arguments as? [String: Any],
-                  let type = args["type"] as? String
-            else {
-                result(FlutterError(code: "bad_args", message: "type is required", details: nil))
-                return
-            }
-            UserDefaults(suiteName: "group.com.duke486.pixez.ipad")?.set(type, forKey: "widget_illust_type")
-            if #available(iOS 14.0, *) {
-                WidgetCenter.shared.reloadAllTimelines()
-            }
-            result(nil)
         }
     }
+
     
     override func application(
         _ application: UIApplication,
@@ -453,8 +508,20 @@ private final class GlassRailFactory: NSObject, FlutterPlatformViewFactory {
     init(_ messenger: FlutterBinaryMessenger) { self.messenger = messenger }
     func createArgsCodec() -> FlutterMessageCodec & NSObjectProtocol { FlutterStandardMessageCodec.sharedInstance() }
     func create(withFrame frame: CGRect, viewIdentifier id: Int64, arguments: Any?) -> FlutterPlatformView {
-        GlassRailView(frame, id, arguments as? [String: Any] ?? [:], messenger)
+        let args = arguments as? [String: Any] ?? [:]
+        if #unavailable(iOS 26), args["phoneTabs"] as? Bool == true {
+            return PhoneTabsView(frame, id, args, messenger)
+        }
+        return GlassRailView(frame, id, args, messenger)
     }
+}
+
+private func navigationTint(_ args: [String: Any]) -> UIColor? {
+    guard let tint = (args["tint"] as? NSNumber)?.uint32Value else { return nil }
+    return UIColor(red: CGFloat((tint >> 16) & 255) / 255,
+                   green: CGFloat((tint >> 8) & 255) / 255,
+                   blue: CGFloat(tint & 255) / 255,
+                   alpha: CGFloat(tint >> 24) / 255)
 }
 
 private final class GlassRailView: NSObject, FlutterPlatformView {
@@ -468,16 +535,32 @@ private final class GlassRailView: NSObject, FlutterPlatformView {
             let horizontal = args["horizontal"] as? Bool ?? false
             let labels = args["labels"] as? [String] ?? []
             return ArtworkNavigation(labels: horizontal ? labels : Array(labels.prefix(5)), selectionState: selection, horizontal: horizontal,
+                                     phoneTabs: args["phoneTabs"] as? Bool ?? false,
                                      prominent: args["prominent"] as? Bool ?? false,
-                                     segmentWidths: (args["widths"] as? [NSNumber])?.map { CGFloat($0.doubleValue) }) {
+                                     segmentWidths: (args["widths"] as? [NSNumber])?.map { CGFloat($0.doubleValue) },
+                                     tint: navigationTint(args).map { Color(uiColor: $0) }) {
                 channel.invokeMethod("select", arguments: $0)
             }
         }
         host = UIHostingController(rootView: content(args))
         super.init()
+        if #available(iOS 26, *), args["phoneTabs"] as? Bool == true {
+            host.safeAreaRegions = []
+        }
         host.view.frame = frame
         host.view.backgroundColor = .clear
         channel.setMethodCallHandler { [weak self] call, result in
+            if call.method == "page", let page = call.arguments as? NSNumber {
+                let value = CGFloat(page.doubleValue)
+                if value == value.rounded() {
+                    selection.index = Int(value)
+                    selection.page = nil
+                } else {
+                    selection.page = value
+                }
+                result(nil)
+                return
+            }
             guard call.method == "update", let args = call.arguments as? [String: Any] else {
                 result(FlutterMethodNotImplemented)
                 return
@@ -486,7 +569,9 @@ private final class GlassRailView: NSObject, FlutterPlatformView {
                 let updated = content(args)
                 let current = host.rootView
                 if current.labels != updated.labels || current.horizontal != updated.horizontal ||
-                    current.prominent != updated.prominent || current.segmentWidths != updated.segmentWidths {
+                    current.phoneTabs != updated.phoneTabs ||
+                    current.prominent != updated.prominent || current.segmentWidths != updated.segmentWidths ||
+                    current.tint != updated.tint {
                     host.rootView = updated
                 }
                 if let index = args["index"] as? Int, selection.index != index {
@@ -629,5 +714,278 @@ private final class CircularGlassEffectView: UIVisualEffectView {
     override func layoutSubviews() {
         layer.cornerRadius = min(bounds.width, bounds.height) / 2
         super.layoutSubviews()
+    }
+}
+
+private final class FormControlFactory: NSObject, FlutterPlatformViewFactory {
+    let messenger: FlutterBinaryMessenger
+    init(_ messenger: FlutterBinaryMessenger) { self.messenger = messenger }
+    func createArgsCodec() -> FlutterMessageCodec & NSObjectProtocol { FlutterStandardMessageCodec.sharedInstance() }
+    func create(withFrame frame: CGRect, viewIdentifier id: Int64, arguments: Any?) -> FlutterPlatformView {
+        FormControlView(frame, id, arguments as? [String: Any] ?? [:], messenger)
+    }
+}
+
+private final class SettingsActionButton: UIButton {
+    override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
+        bounds.insetBy(dx: 0, dy: -3).contains(point)
+    }
+}
+
+private final class FormControlView: NSObject, FlutterPlatformView {
+    private static let pixivBlue = UIColor(red: 0, green: 150.0 / 255, blue: 250.0 / 255, alpha: 1)
+    private let container: UIView
+    private let control: UIControl
+    private let channel: FlutterMethodChannel
+
+    init(_ frame: CGRect, _ id: Int64, _ args: [String: Any], _ messenger: FlutterBinaryMessenger) {
+        container = UIView(frame: frame)
+        channel = FlutterMethodChannel(name: "pixez/formControl/\(id)", binaryMessenger: messenger)
+        switch args["kind"] as? String {
+        case "switch": control = UISwitch()
+        case "slider": control = UISlider()
+        case "action" where args["compact"] as? Bool == true: control = SettingsActionButton(type: .system)
+        default: control = UIButton(type: .system)
+        }
+        super.init()
+        container.addSubview(control)
+        control.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            control.centerXAnchor.constraint(equalTo: container.centerXAnchor),
+            control.centerYAnchor.constraint(equalTo: container.centerYAnchor)
+        ])
+        if !(control is UISwitch) {
+            control.widthAnchor.constraint(equalTo: container.widthAnchor).isActive = true
+            control.heightAnchor.constraint(equalTo: container.heightAnchor, constant: control is SettingsActionButton ? -6 : 0).isActive = true
+        }
+        if args["kind"] as? String == "action" {
+            control.addTarget(self, action: #selector(activate), for: .primaryActionTriggered)
+        }
+        control.addTarget(self, action: #selector(changed), for: .valueChanged)
+        control.addTarget(self, action: #selector(ended), for: [.touchUpInside, .touchUpOutside, .touchCancel])
+        update(args)
+        channel.setMethodCallHandler { [weak self] call, result in
+            guard call.method == "update", let args = call.arguments as? [String: Any] else {
+                result(FlutterMethodNotImplemented)
+                return
+            }
+            self?.update(args)
+            result(nil)
+        }
+    }
+    func view() -> UIView { container }
+
+    private func update(_ args: [String: Any]) {
+        control.isEnabled = args["enabled"] as? Bool ?? true
+        control.accessibilityLabel = args["label"] as? String
+        if let dark = args["dark"] as? Bool { container.overrideUserInterfaceStyle = dark ? .dark : .light }
+        if let toggle = control as? UISwitch {
+            toggle.onTintColor = Self.pixivBlue
+            toggle.setOn(args["value"] as? Bool ?? false, animated: toggle.window != nil)
+        } else if let slider = control as? UISlider {
+            slider.tintColor = Self.pixivBlue
+            slider.minimumTrackTintColor = Self.pixivBlue
+            slider.minimumValue = (args["min"] as? NSNumber)?.floatValue ?? 0
+            slider.maximumValue = (args["max"] as? NSNumber)?.floatValue ?? 1
+            if !slider.isTracking { slider.value = (args["value"] as? NSNumber)?.floatValue ?? 0 }
+            if args["clearTrack"] as? Bool == true {
+                slider.minimumTrackTintColor = .clear
+                slider.maximumTrackTintColor = .clear
+            }
+        } else if let button = control as? UIButton {
+            if args["kind"] as? String == "action" {
+                let prominent = args["prominent"] as? Bool == true
+                var config: UIButton.Configuration
+                if #available(iOS 26, *) {
+                    config = prominent ? .prominentGlass() : .glass()
+                } else {
+                    config = prominent ? .filled() : .tinted()
+                }
+                config.cornerStyle = .capsule
+                if prominent { config.baseBackgroundColor = Self.pixivBlue }
+                config.title = args["label"] as? String
+                if args["compact"] as? Bool == true {
+                    config.buttonSize = .medium
+                    config.contentInsets = NSDirectionalEdgeInsets(top: 4, leading: 12, bottom: 4, trailing: 12)
+                    var title = AttributedString(config.title ?? "")
+                    title.font = .systemFont(ofSize: CGFloat((args["fontSize"] as? NSNumber)?.doubleValue ?? 16), weight: .medium)
+                    config.attributedTitle = title
+                }
+                if let symbol = args["symbol"] as? String {
+                    config.image = UIImage(systemName: symbol)
+                    if args["iconOnly"] as? Bool == true {
+                        config.title = nil
+                        config.contentInsets = .zero
+                        config.baseForegroundColor = .label
+                    } else {
+                        config.imagePadding = 6
+                    }
+                }
+                button.configuration = config
+                return
+            }
+            let labels = args["labels"] as? [String] ?? []
+            let selected = args["index"] as? Int ?? -1
+            let symbol = args["symbol"] as? String
+            var config = UIButton.Configuration.plain()
+            if args["glass"] as? Bool == true {
+                if #available(iOS 26, *) { config = .glass() } else { config = .tinted() }
+                config.cornerStyle = .capsule
+                config.contentInsets = .zero
+            }
+            config.image = UIImage(systemName: symbol ?? "chevron.up.chevron.down")
+            config.baseForegroundColor = args["active"] as? Bool == true ? .systemBlue : (symbol == nil ? .secondaryLabel : .label)
+            if symbol == nil, labels.indices.contains(selected) {
+                var title = AttributedString(labels[selected])
+                title.font = .systemFont(ofSize: CGFloat((args["fontSize"] as? NSNumber)?.doubleValue ?? 17))
+                config.attributedTitle = title
+                config.titleLineBreakMode = .byTruncatingTail
+                config.imagePlacement = .trailing
+                config.imagePadding = 3
+                config.preferredSymbolConfigurationForImage = UIImage.SymbolConfiguration(pointSize: 10)
+                config.contentInsets = .init(top: 2, leading: 6, bottom: 2, trailing: 6)
+            }
+            button.configuration = config
+            button.titleLabel?.numberOfLines = 1
+            button.showsMenuAsPrimaryAction = true
+            if #available(iOS 16, *) {
+                button.preferredMenuElementOrder = args["fixedOrder"] as? Bool == true ? .fixed : .automatic
+            }
+            button.menu = UIMenu(children: labels.enumerated().map { index, label in
+                UIAction(title: label, state: index == selected ? .on : .off) { [weak self] _ in
+                    self?.channel.invokeMethod("change", arguments: index)
+                }
+            })
+        }
+    }
+    @objc private func activate() { channel.invokeMethod("change", arguments: nil) }
+    @objc private func changed() {
+        if let toggle = control as? UISwitch { channel.invokeMethod("change", arguments: toggle.isOn) }
+        if let slider = control as? UISlider { channel.invokeMethod("change", arguments: Double(slider.value)) }
+    }
+    @objc private func ended() {
+        if let slider = control as? UISlider { channel.invokeMethod("end", arguments: Double(slider.value)) }
+    }
+}
+
+// Use the system tab bar on iOS versions without Liquid Glass.
+private final class PhoneTabsView: NSObject, FlutterPlatformView, UITabBarDelegate {
+    private let bar: UITabBar
+    private let channel: FlutterMethodChannel
+    private var labels: [String] = []
+    private let symbols = ["house", "chart.bar", "heart", "magnifyingglass", "ellipsis"]
+
+    init(_ frame: CGRect, _ id: Int64, _ args: [String: Any], _ messenger: FlutterBinaryMessenger) {
+        bar = UITabBar(frame: frame)
+        channel = FlutterMethodChannel(name: "pixez/glassRail/\(id)", binaryMessenger: messenger)
+        super.init()
+        bar.itemPositioning = .fill
+        bar.delegate = self
+        update(args)
+        channel.setMethodCallHandler { [weak self] call, result in
+            if call.method == "page", let value = call.arguments as? NSNumber {
+                self?.updatePageSelection(CGFloat(value.doubleValue))
+            } else if call.method == "update", let args = call.arguments as? [String: Any] {
+                self?.update(args)
+            } else {
+                result(FlutterMethodNotImplemented)
+                return
+            }
+            result(nil)
+        }
+    }
+
+    private func update(_ args: [String: Any]) {
+        bar.tintColor = navigationTint(args)
+        let titles = Array((args["labels"] as? [String] ?? []).prefix(symbols.count))
+        if titles != labels {
+            labels = titles
+            bar.items = titles.enumerated().map { index, title in
+                let symbol = symbols[index]
+                let image = UIImage(systemName: symbol)
+                let item = UITabBarItem(title: title, image: image, selectedImage: UIImage(systemName: symbol + ".fill") ?? image)
+                item.tag = index
+                return item
+            }
+        }
+        if let index = args["index"] as? Int { updatePageSelection(CGFloat(index)) }
+    }
+
+    private func updatePageSelection(_ position: CGFloat) {
+        guard !labels.isEmpty else { return }
+        let value = min(max(0, position), CGFloat(labels.count - 1))
+        let item = bar.items?[Int(value.rounded())]
+        if bar.selectedItem !== item { bar.selectedItem = item }
+    }
+
+    func tabBar(_ tabBar: UITabBar, didSelect item: UITabBarItem) {
+        channel.invokeMethod("select", arguments: item.tag)
+    }
+
+    deinit { channel.setMethodCallHandler(nil) }
+    func view() -> UIView { bar }
+}
+
+private final class FadingBackdropFactory: NSObject, FlutterPlatformViewFactory {
+    func createArgsCodec() -> FlutterMessageCodec & NSObjectProtocol { FlutterStandardMessageCodec.sharedInstance() }
+    func create(withFrame frame: CGRect, viewIdentifier id: Int64, arguments: Any?) -> FlutterPlatformView {
+        let args = arguments as? [String: Any]
+        return FadingBackdrop(frame: frame, direction: args?["direction"] as? String ?? "down",
+                              dark: args?["dark"] as? Bool ?? false)
+    }
+}
+
+private final class BackdropMask: UIView {
+    override class var layerClass: AnyClass { CAGradientLayer.self }
+}
+
+private final class FadingBackdrop: UIVisualEffectView, FlutterPlatformView {
+    private let fade = BackdropMask()
+    private var maskedSize = CGSize.zero
+
+    init(frame: CGRect, direction: String, dark: Bool) {
+        super.init(effect: UIBlurEffect(style: direction == "down" ? .systemMaterial : .systemUltraThinMaterial))
+        self.frame = frame
+        overrideUserInterfaceStyle = dark ? .dark : .light
+        isUserInteractionEnabled = false
+        accessibilityElementsHidden = true
+        let gradient = fade.layer as! CAGradientLayer
+        switch direction {
+        case "left": gradient.startPoint = CGPoint(x: 1, y: 0.5); gradient.endPoint = CGPoint(x: 0, y: 0.5)
+        case "right": gradient.startPoint = CGPoint(x: 0, y: 0.5); gradient.endPoint = CGPoint(x: 1, y: 0.5)
+        default: gradient.startPoint = CGPoint(x: 0.5, y: 0); gradient.endPoint = CGPoint(x: 0.5, y: 1)
+        }
+        gradient.colors = [UIColor.black.cgColor, UIColor.clear.cgColor]
+        fade.isOpaque = false
+    }
+    required init?(coder: NSCoder) { fatalError("init(coder:) is unavailable") }
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        guard bounds.size != maskedSize else { return }
+        maskedSize = bounds.size
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        fade.frame = bounds
+        // UIVisualEffectView copies its mask to internal views. Reassign on resize.
+        mask = fade
+        CATransaction.commit()
+    }
+    func view() -> UIView { self }
+}
+
+private final class ThemeColorPicker: UIColorPickerViewController, UIColorPickerViewControllerDelegate, UIAdaptivePresentationControllerDelegate {
+    var complete: FlutterResult?
+
+    func colorPickerViewControllerDidFinish(_ viewController: UIColorPickerViewController) { finish() }
+    func presentationControllerDidDismiss(_ presentationController: UIPresentationController) { finish() }
+
+    private func finish() {
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        let rgb = selectedColor.cgColor.converted(to: CGColorSpace(name: CGColorSpace.sRGB)!,
+                                                  intent: .defaultIntent, options: nil)
+        let callback = complete
+        complete = nil
+        guard let rgb, UIColor(cgColor: rgb).getRed(&r, green: &g, blue: &b, alpha: &a) else { callback?(nil); return }
+        callback?(0xff000000 | Int((r * 255).rounded()) << 16 | Int((g * 255).rounded()) << 8 | Int((b * 255).rounded()))
     }
 }

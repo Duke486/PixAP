@@ -1,3 +1,4 @@
+import 'package:pixez/component/glass_form_control.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:pixez/component/pixiv_image.dart';
@@ -79,7 +80,7 @@ class _NetworkPageState extends State<NetworkPage> {
               visible: userSetting.networkMode.allowsImageSource,
               child: Padding(
                 padding: const EdgeInsets.all(8.0),
-                child: Card(
+                child: SettingsSection(
                   child: Column(
                     children: [
                       ListTile(
@@ -193,7 +194,7 @@ class _NetworkPageState extends State<NetworkPage> {
   }
 
   Widget _buildNetworkModeSetting(BuildContext context) {
-    return Card(
+    return SettingsSection(
       child: Column(
         children: [
           ListTile(
@@ -238,7 +239,6 @@ class _NetworkPageState extends State<NetworkPage> {
               return RadioListTile<NetworkMode>(
                 value: mode,
                 title: Text(_networkModeTitle(context, mode)),
-                subtitle: Text(_networkModeMessage(context, mode)),
               );
             }).toList(),
           ),
@@ -258,14 +258,4 @@ class _NetworkPageState extends State<NetworkPage> {
     }
   }
 
-  String _networkModeMessage(BuildContext context, NetworkMode mode) {
-    switch (mode) {
-      case NetworkMode.compat:
-        return 'bypass sni,doh';
-      case NetworkMode.ech:
-        return 'ech';
-      case NetworkMode.standard:
-        return 'standard';
-    }
-  }
 }

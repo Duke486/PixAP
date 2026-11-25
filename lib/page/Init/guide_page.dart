@@ -1,3 +1,4 @@
+import 'package:pixez/component/glass_form_control.dart';
 import 'dart:ui' show ImageFilter;
 
 import 'package:animations/animations.dart';
@@ -25,7 +26,7 @@ class _GuidePageState extends State<GuidePage> {
     try {
       if (_showNetwork) {
         await Prefer.setBool('guide_enable', false);
-        if (mounted) Leader.pushUntilHome(context);
+        if (mounted) Leader.pushUntilHome(context, startup: true);
       } else {
         await userSetting.setLanguageNum(userSetting.languageNum);
         if (mounted) setState(() => _showNetwork = true);
@@ -106,32 +107,16 @@ class _GuidePageState extends State<GuidePage> {
                             mainAxisAlignment: MainAxisAlignment.end,
                             children: [
                               if (_showNetwork) ...[
-                                OutlinedButton(
-                                  onPressed: _busy
-                                      ? null
-                                      : () => setState(
-                                          () => _showNetwork = false,
-                                        ),
-                                  child: Text(
-                                    MaterialLocalizations.of(
-                                      context,
-                                    ).backButtonTooltip,
-                                  ),
+                                GlassActionButton(
+                                  onPressed: _busy ? null : () => setState(() => _showNetwork = false),
+                                  label: MaterialLocalizations.of(context).backButtonTooltip,
                                 ),
                                 const Spacer(),
                               ],
-                              FilledButton.tonalIcon(
-                                onPressed: _busy ? null : _advance,
-                                icon: Icon(
-                                  _showNetwork
-                                      ? Icons.check_rounded
-                                      : Icons.arrow_forward_rounded,
-                                ),
-                                label: Text(
-                                  _showNetwork
-                                      ? strings.complete
-                                      : strings.next,
-                                ),
+                              GlassActionButton(
+                                prominent: true, onPressed: _busy ? null : _advance,
+                                symbol: _showNetwork ? 'checkmark' : 'arrow.right',
+                                label: _showNetwork ? strings.complete : strings.next,
                               ),
                             ],
                           ),

@@ -57,6 +57,7 @@ class PixivImage extends StatefulWidget {
   final double? width;
   final String? host;
   final PixEzCacheHeaderData? cacheHeaderData;
+  final Widget Function(Widget image)? loadedImageBuilder;
 
   PixivImage(
     this.url, {
@@ -68,6 +69,7 @@ class PixivImage extends StatefulWidget {
     this.host,
     this.width,
     this.cacheHeaderData,
+    this.loadedImageBuilder,
   });
 
   @override
@@ -174,7 +176,11 @@ class _PixivImageState extends State<PixivImage> {
   @override
   Widget build(BuildContext context) {
     final size = min(min(width ?? 60, height ?? 60), 60.0);
+    final wrapImage = widget.loadedImageBuilder;
     return CachedNetworkImage(
+      imageBuilder: wrapImage == null ? null : (context, provider) => wrapImage(
+        Image(image: provider, width: width, height: height, fit: fit ?? BoxFit.fitWidth),
+      ),
       placeholder: (context, url) =>
           widget.placeWidget ??
           Container(
@@ -201,7 +207,9 @@ class _PixivImageState extends State<PixivImage> {
           ),
         ),
       ),
-      fadeOutDuration: widget.fade ? const Duration(milliseconds: 1000) : null,
+      fadeOutDuration: wrapImage != null
+          ? Duration.zero
+          : widget.fade ? const Duration(milliseconds: 1000) : null,
       // memCacheWidth: width?.toInt(),
       // memCacheHeight: height?.toInt(),
       imageUrl: url,

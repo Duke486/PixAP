@@ -368,7 +368,7 @@ class _IllustDetailContentState extends State<IllustDetailContent> {
   }
 
   Widget _buildCommentTextArea(BuildContext context, Illusts data) {
-    if (usesIPadLayout(context)) {
+    if (usesAppleControls(context)) {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 5),
         child: Center(child: ArtworkCommentButton(id: data.id, count: data.commentCountText)),

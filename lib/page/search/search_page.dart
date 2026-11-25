@@ -26,6 +26,7 @@ import 'package:pixez/er/leader.dart';
 import 'package:pixez/i18n.dart';
 import 'package:pixez/main.dart';
 import 'package:pixez/models/tags.dart';
+import 'package:pixez/models/trend_tags.dart';
 import 'package:pixez/page/picture/illust_lighting_page.dart';
 import 'package:pixez/page/preview/preview_page.dart';
 import 'package:pixez/page/saucenao/sauce_nao_modal.dart';
@@ -40,14 +41,20 @@ class SearchPage extends StatefulWidget {
   const SearchPage({Key? key}) : super(key: key);
 
   @override
-  _SearchPageState createState() => _SearchPageState();
+  SearchPageState createState() => SearchPageState();
 }
 
-class _SearchPageState extends State<SearchPage>
+class SearchPageState extends State<SearchPage>
     with TickerProviderStateMixin, AutomaticKeepAliveClientMixin {
+  Future<void> refreshGrid() async {
+    await _trendTagsStore.fetch();
+    if (mounted) setState(() => _gridRefresh++);
+  }
+
   String editString = "";
   final _discoveryScroll = ScrollController();
   int _searchReset = 0;
+  int _gridRefresh = 0;
 
   bool _pickingSauceNaoImage = false;
 
@@ -90,14 +97,13 @@ class _SearchPageState extends State<SearchPage>
     _trendTagsStore = TrendTagsStore();
     _tabController = TabController(length: 3, vsync: this);
     super.initState();
-    _accountReaction = reaction((_) => accountStore.now?.userId, (String? id) {
-      if (id == null) return;
-      tagHistoryStore.fetch();
+    _accountReaction = reaction((_) => (accountStore.now?.userId, userSetting.locale), (selection) {
+      if (selection.$1 != null) tagHistoryStore.fetch();
       _trendTagsStore.fetch();
     }, fireImmediately: true);
     _topSubscription = topStore.topStream.listen((event) {
       if (event != '400' || !mounted || accountStore.now == null) return;
-      if (usesIPadLayout(context)) {
+      if (usesAppleControls(context)) {
         FocusManager.instance.primaryFocus?.unfocus();
         setState(() => _searchReset++);
         if (_discoveryScroll.hasClients) _discoveryScroll.jumpTo(0);
@@ -136,8 +142,8 @@ class _SearchPageState extends State<SearchPage>
               child: Text(
                 I18n.of(context).search,
                 style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 30.0,
+                  fontWeight: isIPhone ? FontWeight.normal : FontWeight.bold,
+                  fontSize: isIPhone ? 28 : 30.0,
                   color: Theme.of(context).textTheme.titleLarge!.color,
                 ),
               ),
@@ -159,7 +165,7 @@ class _SearchPageState extends State<SearchPage>
         return Observer(
           builder: (_) {
             if (accountStore.now == null) return const LoginInFirst();
-            if (usesIPadLayout(context)) {
+            if (usesAppleControls(context)) {
               return SafeArea(
                 top: false,
                 bottom: false,
@@ -198,26 +204,27 @@ class _SearchPageState extends State<SearchPage>
   }
 
   Widget _buildContent(BuildContext context, BoxConstraints snapshot) {
-    final tablet = usesIPadLayout(context);
+    final tags = _trendTagsStore.visibleTrendTags;
+    final apple = usesAppleControls(context);
     final columnCount = max(
       3,
-      (snapshot.maxWidth / (tablet ? 245 : 200)).floor(),
+      (snapshot.maxWidth / (apple ? 245 : 200)).floor(),
     );
-    final top = tablet
+    final top = apple
         ? MediaQuery.paddingOf(context).top +
               SearchSuggestionPage.inlineToolbarHeight
         : 0.0;
-    final toolbarTravel = tablet
+    final toolbarTravel = apple
         ? SearchSuggestionPage.inlineToolbarTravel(context)
         : 0.0;
     final gridGap = (toolbarTravel * .55).clamp(0.0, 96.0).toDouble();
     return RefreshIndicator(
       edgeOffset: top,
-      onRefresh: _trendTagsStore.fetch,
+      onRefresh: refreshGrid,
       child: CustomScrollView(
-        controller: tablet ? _discoveryScroll : null,
+        controller: apple ? _discoveryScroll : null,
         slivers: [
-          if (tablet)
+          if (apple)
             SliverToBoxAdapter(
               child: SizedBox(height: top + toolbarTravel + gridGap),
             )
@@ -234,136 +241,149 @@ class _SearchPageState extends State<SearchPage>
               ),
             ),
           ],
-          if (_trendTagsStore.visibleTrendTags.isNotEmpty)
+          if (tags.isNotEmpty)
             SliverPadding(
+              key: ValueKey((
+                accountStore.now?.userId,
+                Object.hashAll(muteStore.banTags.map((tag) => tag.name)),
+              )),
               padding: EdgeInsets.symmetric(
-                horizontal: tablet ? 40 : 12,
+                horizontal: usesIPadLayout(context) ? 40 : 12,
                 vertical: 8,
               ),
               sliver: SliverGrid(
-                delegate: SliverChildBuilderDelegate((context, index) {
-                  final tags = _trendTagsStore.visibleTrendTags;
-                  return GestureDetector(
-                    onTap: () {
-                      Navigator.of(context, rootNavigator: true).push(
-                        MaterialPageRoute(
-                          builder: (_) {
-                            return ResultPage(word: tags[index].tag);
-                          },
-                        ),
-                      );
-                    },
-                    onLongPress: () {
-                      Navigator.of(context, rootNavigator: true).push(
-                        MaterialPageRoute(
-                          builder: (_) {
-                            return IllustLightingPage(
-                              id: tags[index].illust.id,
-                            );
-                          },
-                        ),
-                      );
-                    },
-                    child: Card(
-                      margin: usesIPadLayout(context) ? EdgeInsets.zero : null,
-                      clipBehavior: Clip.antiAlias,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(tablet ? 12 : 8),
-                      ),
-                      child: Stack(
-                        children: <Widget>[
-                          Positioned.fill(
-                            child: PixivImage(
-                              tags[index].illust.imageUrls.squareMedium,
-                              fit: BoxFit.cover,
-                            ),
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) => _SearchGridTile(
+                    tag: tags[index],
+                    refresh: _gridRefresh,
+                    builder: (context, tag, image) => GestureDetector(
+                      onTap: () {
+                        Navigator.of(context, rootNavigator: true).push(
+                          MaterialPageRoute(
+                            builder: (_) {
+                              return ResultPage(word: tag.tag);
+                            },
                           ),
-                          if (usesIPadLayout(context))
-                            const Positioned.fill(
-                              child: DecoratedBox(
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    begin: Alignment.topCenter,
-                                    end: Alignment.bottomCenter,
-                                    colors: [
-                                      Colors.transparent,
-                                      Colors.black87,
-                                    ],
-                                    stops: [0.38, 1],
+                        );
+                      },
+                      onLongPress: () {
+                        Navigator.of(context, rootNavigator: true).push(
+                          MaterialPageRoute(
+                            builder: (_) {
+                              return IllustLightingPage(id: tag.illust.id);
+                            },
+                          ),
+                        );
+                      },
+                      child: Card(
+                        margin: usesAppleControls(context)
+                            ? EdgeInsets.zero
+                            : null,
+                        clipBehavior: Clip.antiAlias,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(apple ? 12 : 8),
+                        ),
+                        child: Stack(
+                          children: <Widget>[
+                            Positioned.fill(child: image),
+                            if (apple)
+                              const Positioned.fill(
+                                child: DecoratedBox(
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                      colors: [
+                                        Colors.transparent,
+                                        Colors.black87,
+                                      ],
+                                      stops: [0.38, 1],
+                                    ),
+                                  ),
+                                ),
+                              )
+                            else
+                              Opacity(
+                                opacity: 0.4,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.black,
                                   ),
                                 ),
                               ),
-                            )
-                          else
-                            Opacity(
-                              opacity: 0.4,
-                              child: Container(
-                                decoration: BoxDecoration(color: Colors.black),
-                              ),
-                            ),
-                          Align(
-                            child: Padding(
-                              padding: const EdgeInsets.all(2.0),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: <Widget>[
-                                  Text(
-                                    "#${tags[index].tag}",
-                                    textAlign: TextAlign.center,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: tablet ? 16 : 12,
-                                    ),
-                                  ),
-                                  if (tags[index].translatedName != null &&
-                                      tags[index].translatedName!.isNotEmpty)
+                            Align(
+                              child: Padding(
+                                padding: const EdgeInsets.all(2.0),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: <Widget>[
                                     Text(
-                                      tags[index].translatedName!,
+                                      "#${tag.tag}",
                                       textAlign: TextAlign.center,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                       style: TextStyle(
                                         color: Colors.white,
-                                        fontSize: tablet ? 14 : 10,
                                         fontWeight: FontWeight.bold,
+                                        fontSize: isIPhone
+                                            ? 15
+                                            : apple
+                                            ? 16
+                                            : 12,
                                       ),
                                     ),
-                                ],
+                                    if (tag.translatedName?.isNotEmpty == true)
+                                      Text(
+                                        tag.translatedName!,
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: isIPhone
+                                              ? 13
+                                              : apple
+                                              ? 14
+                                              : 10,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                  ],
+                                ),
                               ),
+                              alignment: Alignment.bottomCenter,
                             ),
-                            alignment: Alignment.bottomCenter,
-                          ),
-                          if (tablet)
-                            Positioned.fill(
-                              child: IgnorePointer(
-                                child: CustomPaint(
-                                  painter: _SearchTileGlassEdge(
-                                    Theme.of(context).brightness,
+                            if (apple)
+                              Positioned.fill(
+                                child: IgnorePointer(
+                                  child: CustomPaint(
+                                    painter: _SearchTileGlassEdge(
+                                      Theme.of(context).brightness,
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
-                  );
-                }, childCount: _trendTagsStore.visibleTrendTags.length),
+                  ),
+                  childCount: tags.length,
+                ),
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: columnCount,
                   childAspectRatio: 1.0,
-                  mainAxisSpacing: usesIPadLayout(context) ? 2 : 0,
-                  crossAxisSpacing: usesIPadLayout(context) ? 2 : 0,
+                  mainAxisSpacing: usesAppleControls(context) ? 2 : 0,
+                  crossAxisSpacing: usesAppleControls(context) ? 2 : 0,
                 ),
               ),
             ),
-          if (tablet)
+          if (apple)
             SliverLayoutBuilder(
               builder: (context, constraints) => SliverToBoxAdapter(
                 child: SizedBox(
                   height: max(
                     32.0,
-                    constraints.viewportMainAxisExtent + toolbarTravel -
+                    constraints.viewportMainAxisExtent +
+                        toolbarTravel -
                         constraints.precedingScrollExtent,
                   ),
                 ),
@@ -371,7 +391,9 @@ class _SearchPageState extends State<SearchPage>
             )
           else
             SliverToBoxAdapter(
-              child: SizedBox(height: (MediaQuery.sizeOf(context).width / 3) - 16),
+              child: SizedBox(
+                height: (MediaQuery.sizeOf(context).width / 3) - 16,
+              ),
             ),
         ],
       ),
@@ -395,7 +417,8 @@ class _SearchPageState extends State<SearchPage>
                   Expanded(
                     child: Text(
                       I18n.of(context).history,
-                      style: Theme.of(context).textTheme.titleSmall,
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontSize: isIPhone ? 13 : null, fontWeight: isIPhone ? FontWeight.normal : null),
                     ),
                   ),
                   IconButton(
@@ -614,7 +637,7 @@ class _SearchPageState extends State<SearchPage>
           f.name,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: inline ? null : const TextStyle(fontSize: 12.0),
+          style: isIPhone ? const TextStyle(fontSize: 12, fontWeight: FontWeight.normal) : inline ? null : const TextStyle(fontSize: 12.0),
         ),
         onPressed: () {
           FocusManager.instance.primaryFocus?.unfocus();
@@ -633,6 +656,137 @@ class _SearchPageState extends State<SearchPage>
 
   @override
   bool get wantKeepAlive => true;
+}
+
+class _SearchGridTile extends StatefulWidget {
+  const _SearchGridTile({required this.tag, required this.refresh, required this.builder});
+
+  final TrendTags tag;
+  final int refresh;
+  final Widget Function(BuildContext, TrendTags, Widget) builder;
+
+  @override
+  State<_SearchGridTile> createState() => _SearchGridTileState();
+}
+
+class _SearchGridTileState extends State<_SearchGridTile>
+    with SingleTickerProviderStateMixin {
+  late final _fade =
+      AnimationController(
+        vsync: this,
+        duration: const Duration(milliseconds: 300),
+      )..addStatusListener((status) {
+        if (status != AnimationStatus.completed || _previous == null) return;
+        setState(() {
+          _previous?.dispose();
+          _previous = null;
+        });
+      });
+  ImageStream? _stream;
+  ImageStreamListener? _listener;
+  String? _requestedUrl;
+  String? _displayedUrl;
+  TrendTags? _displayedTag;
+  ImageInfo? _image;
+  ImageInfo? _previous;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _loadImage();
+  }
+
+  @override
+  void didUpdateWidget(_SearchGridTile oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _loadImage(retry: oldWidget.refresh != widget.refresh && _stream == null);
+  }
+
+  void _loadImage({bool retry = false}) {
+    final url = widget.tag.illust.imageUrls.squareMedium;
+    final animate = !MediaQuery.disableAnimationsOf(context);
+    if (_displayedUrl == url) _displayedTag = widget.tag;
+    if (_requestedUrl == url && !retry) return;
+    _requestedUrl = url;
+    _stopListening();
+    if (url.isEmpty || _displayedUrl == url) return;
+
+    final stream = PixivProvider.url(
+      url,
+    ).resolve(createLocalImageConfiguration(context));
+    final listener = ImageStreamListener((image, synchronous) {
+      _stopListening();
+      void showImage() {
+        final shouldFade = animate && (!synchronous || _image != null);
+        _previous?.dispose();
+        _previous = shouldFade ? _image : null;
+        if (!shouldFade) _image?.dispose();
+        _image = image;
+        _displayedUrl = url;
+        _displayedTag = widget.tag;
+        if (shouldFade) {
+          _fade.forward(from: 0);
+        } else {
+          _fade.value = 1;
+        }
+      }
+
+      if (synchronous) {
+        showImage();
+      } else {
+        setState(showImage);
+      }
+    }, onError: (_, _) => _stopListening());
+    _stream = stream;
+    _listener = listener;
+    stream.addListener(listener);
+  }
+
+  void _stopListening() {
+    final listener = _listener;
+    if (listener != null) _stream?.removeListener(listener);
+    _listener = null;
+    _stream = null;
+  }
+
+  @override
+  void dispose() {
+    _stopListening();
+    _fade.dispose();
+    _previous?.dispose();
+    _image?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final previous = _previous;
+    final image = _image;
+    return widget.builder(
+      context,
+      _displayedTag ?? widget.tag,
+      Stack(
+        fit: StackFit.expand,
+        children: [
+          if (previous != null)
+            RawImage(
+              image: previous.image,
+              scale: previous.scale,
+              fit: BoxFit.cover,
+            ),
+          if (image != null)
+            FadeTransition(
+              opacity: _fade,
+              child: RawImage(
+                image: image.image,
+                scale: image.scale,
+                fit: BoxFit.cover,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
 }
 
 class _SearchTileGlassEdge extends CustomPainter {

@@ -40,7 +40,7 @@ class SpotlightCard extends StatelessWidget {
             return SoupPage(url: spotlight.articleUrl, spotlight: spotlight);
           }));
         },
-        child: usesIPadLayout(context) ? IPadGalleryCard(scrolling: true, child: Column(
+        child: usesAppleControls(context) ? IPadGalleryCard(scrolling: true, child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             AspectRatio(aspectRatio: 1.91, child: PixivImage(spotlight.thumbnail, fit: BoxFit.cover)),
             Padding(padding: const EdgeInsets.all(12), child: SizedBox(height: MediaQuery.textScalerOf(context).scale(16) * 2.8, child: Text(spotlight.title, maxLines: 2, overflow: TextOverflow.ellipsis,

@@ -79,7 +79,7 @@ class _NewPageState extends State<NewPage>
     return Observer(
       builder: (context) {
         if (accountStore.now != null) {
-          final tablet = usesIPadLayout(context);
+          final glassToolbar = usesAppleControls(context);
           final id = int.parse(accountStore.now!.userId);
           final top = kToolbarHeight + MediaQuery.paddingOf(context).top;
           final labels = [
@@ -94,7 +94,7 @@ class _NewPageState extends State<NewPage>
             _tabController.animateTo(i);
           }
 
-          final topInset = tablet ? top : 0.0;
+          final topInset = glassToolbar ? top : 0.0;
           final bookRestriction =
               _visibilityRestrictions[_filterIndices[_bookmarkTab]];
           final activityRestriction =
@@ -103,19 +103,20 @@ class _NewPageState extends State<NewPage>
               _visibilityRestrictions[_filterIndices[_followingTab]];
           final pages = TabBarView(
             controller: _tabController,
+            physics: const NeverScrollableScrollPhysics(),
             children: [
               BookmarkPage(
                 key: ValueKey((id, bookRestriction)),
                 id: id,
                 restrict: bookRestriction,
                 topInset: topInset,
-                showFilter: !tablet,
+                showFilter: !glassToolbar,
               ),
               NewIllustPage(
                 key: ValueKey((id, activityRestriction)),
                 restrict: activityRestriction,
                 topInset: topInset,
-                showFilter: !tablet,
+                showFilter: !glassToolbar,
               ),
               WatchlistPage(topInset: topInset),
               FollowList(
@@ -123,11 +124,11 @@ class _NewPageState extends State<NewPage>
                 id: id,
                 restrict: followRestriction,
                 topInset: topInset,
-                showFilter: !tablet,
+                showFilter: !glassToolbar,
               ),
             ],
           );
-          if (tablet) {
+          if (glassToolbar) {
             final visibilityLabels = [
               I18n.of(context).public,
               I18n.of(context).private,
@@ -146,19 +147,40 @@ class _NewPageState extends State<NewPage>
                     children: [
                       const ProgressiveToolbarBlur(),
                       SafeArea(
+                        minimum: EdgeInsets.symmetric(
+                          horizontal: isIPhone ? 8 : 0,
+                        ),
                         bottom: false,
                         child: LayoutBuilder(
                           builder: (context, bounds) => AnimatedBuilder(
                             animation: _tabController,
                             builder: (context, _) {
                               final tab = _tabController.index;
+                              final filterWidth = (bounds.maxWidth * .41)
+                                  .clamp(0.0, 146.0)
+                                  .toDouble();
+                              final filter = SortGroup(
+                                key: ValueKey(tab),
+                                compact: true,
+                                initIndex: _filterIndices[tab],
+                                children: tab == _activityTab
+                                    ? [
+                                        I18n.of(context).all,
+                                        ...visibilityLabels,
+                                      ]
+                                    : visibilityLabels,
+                                onChange: (int index) =>
+                                    setState(() => _filterIndices[tab] = index),
+                              );
                               return Row(
                                 textDirection: TextDirection.ltr,
                                 children: [
-                                  const Spacer(),
+                                  if (!isIPhone) const Spacer(),
                                   GlassSegmentPicker(
                                     compact: true,
-                                    maxWidth: bounds.maxWidth * .54,
+                                    maxWidth: isIPhone
+                                        ? bounds.maxWidth - filterWidth - 12
+                                        : bounds.maxWidth * .54,
                                     labels: labels,
                                     index: tab,
                                     onSelect: select,
@@ -173,23 +195,12 @@ class _NewPageState extends State<NewPage>
                                                   const EdgeInsets.symmetric(
                                                     horizontal: 6,
                                                   ),
-                                              child: SortGroup(
-                                                key: ValueKey(tab),
-                                                compact: true,
-                                                initIndex: _filterIndices[tab],
-                                                children: tab == _activityTab
-                                                    ? [
-                                                        I18n.of(context).all,
-                                                        ...visibilityLabels,
-                                                      ]
-                                                    : visibilityLabels,
-                                                onChange: (int index) =>
-                                                    setState(
-                                                      () =>
-                                                          _filterIndices[tab] =
-                                                              index,
-                                                    ),
-                                              ),
+                                              child: isIPhone
+                                                  ? SizedBox(
+                                                      width: filterWidth,
+                                                      child: filter,
+                                                    )
+                                                  : filter,
                                             ),
                                           ),
                                   ),
@@ -210,13 +221,15 @@ class _NewPageState extends State<NewPage>
             children: [
               AppBar(
                 automaticallyImplyLeading: false,
-                title: TabBar(
-                  controller: _tabController,
-                  isScrollable: true,
-                  tabAlignment: TabAlignment.start,
-                  indicatorSize: TabBarIndicatorSize.label,
-                  onTap: select,
-                  tabs: [for (final label in labels) Tab(text: label)],
+                title: IPadPageTabs(
+                  tabs: TabBar(
+                    controller: _tabController,
+                    isScrollable: true,
+                    tabAlignment: TabAlignment.start,
+                    indicatorSize: TabBarIndicatorSize.label,
+                    onTap: select,
+                    tabs: [for (final label in labels) Tab(text: label)],
+                  ),
                 ),
               ),
               Expanded(child: pages),

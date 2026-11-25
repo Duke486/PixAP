@@ -91,7 +91,10 @@ void main() {
       ),
     );
     final glass = find.byType(NativeGlassControl);
-    for (final width in [650.0, 1100.0]) {
+    const device = MethodChannel('pixez/device');
+    for (final width in [320.0, 390.0, 650.0, 1100.0]) {
+      messenger.setMockMethodCallHandler(device, (_) async => width < 600);
+      await initializeAppleDevice();
       tester.view.physicalSize = Size(width, 800);
       await tester.pump();
       expect(find.byType(ProgressiveToolbarBlur), findsOneWidget);
@@ -99,6 +102,32 @@ void main() {
       expect(rows.expand((row) => row.labels), orderedEquals(labels));
       expect(rows.last.index, rows.last.labels.length - 1);
       expect(rows.every((row) => row.prominent), isTrue);
+      if (width < 600) {
+        expect(rows, hasLength(1));
+        final strip = find.ancestor(of: glass, matching: find.byType(SingleChildScrollView));
+        final position = tester.state<ScrollableState>(find.descendant(
+          of: strip.first, matching: find.byType(Scrollable),
+        ).first).position;
+        expect(position.maxScrollExtent, greaterThan(0));
+        position.jumpTo(0);
+        await tester.pump();
+        final startBlur = find.byKey(const ValueKey('rank-blur-start'));
+        final endBlur = find.byKey(const ValueKey('rank-blur-end'));
+        expect(startBlur, findsNothing);
+        expect(endBlur, findsOneWidget);
+        position.jumpTo(position.maxScrollExtent / 2);
+        await tester.pump();
+        expect(startBlur, findsOneWidget);
+        expect(endBlur, findsOneWidget);
+        position.jumpTo(position.maxScrollExtent);
+        await tester.pump();
+        expect(endBlur, findsNothing);
+        position.jumpTo(0);
+        await tester.drag(strip.first, const Offset(-160, 0));
+        await tester.pump(const Duration(milliseconds: 350));
+        expect(position.pixels, greaterThan(0));
+        continue;
+      }
       for (final view in glass.evaluate()) {
         final rect = tester.getRect(
           find.byElementPredicate((element) => element == view),
@@ -107,6 +136,7 @@ void main() {
         expect(rect.right, lessThanOrEqualTo(width));
       }
     }
+    messenger.setMockMethodCallHandler(device, null);
     tester.widgetList<NativeGlassControl>(glass).first.onSelect(0);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 350));
@@ -133,7 +163,7 @@ void main() {
     expect(network.dates.last, '2020-02-03');
     expect(controller.index, 0);
     await tester.tap(find.text('重选'));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 350));
     final save = find.widgetWithText(TextButton, '保存');
     expect(
       find.ancestor(of: save, matching: find.byType(IPadSurface)),

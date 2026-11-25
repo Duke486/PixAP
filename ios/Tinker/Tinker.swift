@@ -6,6 +6,7 @@
 //
 
 import AppIntents
+import ImageIO
 import SwiftUI
 import WidgetKit
 
@@ -19,62 +20,71 @@ struct Provider: TimelineProvider {
     }
 
     func getSnapshot(in context: Context, completion: @escaping (SimpleEntry) -> ()) {
-        let entry = placeHolderEntry
-        completion(entry)
+        Task.detached(priority: .utility) {
+            completion(cachedEntry(from: AppWidgetDBManager.fetch()) ?? placeHolderEntry)
+        }
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<Entry>) -> ()) {
-        let imageRequestGroup = DispatchGroup()
-        var entries: [SimpleEntry] = []
-        DispatchQueue.global(qos: .background).async {
+        Task.detached(priority: .utility) {
             let illusts = AppWidgetDBManager.fetch()
-            do {
-                if let folder = AppWidgetDBManager.illustFolder() {
-                    guard let first = illusts.randomElement() else {
-                        throw SimpleError(message: "No data")
-                    }
-                    let sourceUrl = first.largeUrl ?? first.pictureUrl
-                    let pictureURL = folder.appendingPathComponent("\(first.id).\(sourceUrl.split(separator: ".").last ?? "png")")
-                    if FileManager.default.fileExists(atPath: pictureURL.path) {
-                    } else {
-                        guard let fileURL = URL(string: sourceUrl) else {
-                            throw SimpleError(message: "picture url")
-                        }
-                        var request = URLRequest(url: fileURL)
-                        request.setValue("https://app-api.pixiv.net/", forHTTPHeaderField: "referer")
-                        request.setValue("PixivIOSApp/5.8.0", forHTTPHeaderField: "User-Agent")
-                        let dispatchGroup = DispatchGroup()
-                        var data: Data?
-                        let task = URLSession.shared.dataTask(with: request, completionHandler: { d, _, _ in
-                            data = d
-                            dispatchGroup.leave()
-                        })
-                        dispatchGroup.enter()
-                        task.resume()
-                        dispatchGroup.wait()
-                        guard let data = data else {
-                            throw SimpleError(message: "data null")
-                        }
-                        try data.write(to: pictureURL)
-                    }
-                    guard let data = try? Data(contentsOf: pictureURL),
-                          let uiImage = UIImage(data: data)
-                    else {
-                        throw SimpleError(message: "data null")
-                    }
-                    entries.append(first.toSimple(uiImage: uiImage))
-                    imageRequestGroup.leave()
-                }
-            } catch {
-                entries.append(placeHolderEntry)
-                print("Error:\(error)")
-                imageRequestGroup.leave()
+            var entry = cachedEntry(from: illusts)
+            if entry == nil {
+                entry = await downloadedEntry(from: illusts)
+            }
+            let refreshDate = Date.now.addingTimeInterval(entry == nil ? 15 * 60 : 30 * 60)
+            completion(Timeline(entries: [entry ?? placeHolderEntry], policy: .after(refreshDate)))
+        }
+    }
+
+    private func cachedEntry(from illusts: [AppWidgetIllust]) -> SimpleEntry? {
+        for illust in illusts {
+            if let data = illust.thumbnail, let image = UIImage(data: data) {
+                return illust.toSimple(uiImage: image)
             }
         }
-        imageRequestGroup.enter()
-        imageRequestGroup.wait()
-        let timeline = Timeline(entries: entries, policy: .atEnd)
-        completion(timeline)
+        guard let folder = AppWidgetDBManager.illustFolder() else { return nil }
+        for illust in illusts {
+            let url = illust.largeUrl ?? illust.pictureUrl
+            let suffix = url.split(separator: ".").last ?? "png"
+            let path = folder.appendingPathComponent("\(illust.id).\(suffix)")
+            if let source = CGImageSourceCreateWithURL(path as CFURL, nil),
+               let image = thumbnail(from: source) {
+                return illust.toSimple(uiImage: image)
+            }
+        }
+        return nil
+    }
+
+    private func downloadedEntry(from illusts: [AppWidgetIllust]) async -> SimpleEntry? {
+        // Compatible with databases written before the app began sharing thumbnails.
+        for illust in illusts.prefix(2) {
+            guard let url = URL(string: illust.pictureUrl) else { continue }
+            var request = URLRequest(url: url, timeoutInterval: 4)
+            request.setValue("https://app-api.pixiv.net/", forHTTPHeaderField: "Referer")
+            request.setValue("PixivIOSApp/5.8.0", forHTTPHeaderField: "User-Agent")
+            guard let (data, response) = try? await URLSession.shared.data(for: request),
+                  let http = response as? HTTPURLResponse,
+                  (200..<300).contains(http.statusCode),
+                  let source = CGImageSourceCreateWithData(data as CFData, nil),
+                  let image = thumbnail(from: source)
+            else { continue }
+            return illust.toSimple(uiImage: image)
+        }
+        return nil
+    }
+
+    private func thumbnail(from source: CGImageSource) -> UIImage? {
+        let options: [CFString: Any] = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceThumbnailMaxPixelSize: 1024,
+            kCGImageSourceShouldCache: false,
+        ]
+        guard let image = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else {
+            return nil
+        }
+        return UIImage(cgImage: image)
     }
 }
 
@@ -82,10 +92,6 @@ extension AppWidgetIllust {
     func toSimple(uiImage: UIImage) -> SimpleEntry {
         SimpleEntry(date: .now, uiImage: uiImage, id: id, illustId: illustId, userId: userId, pictureUrl: pictureUrl, title: title, userName: userName, time: time, type: type)
     }
-}
-
-struct SimpleError: Error {
-    let message: String
 }
 
 struct SimpleEntry: TimelineEntry {

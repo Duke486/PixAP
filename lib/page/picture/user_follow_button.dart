@@ -55,26 +55,29 @@ class _UserFollowButtonState extends State<UserFollowButton> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.glass && usesIPadLayout(context)) {
-      return IPadSurface(
-        child: TextButton(
-          style: TextButton.styleFrom(
-            minimumSize: const Size(0, 40),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            foregroundColor: Theme.of(context).colorScheme.onSurface,
+    if (widget.glass && usesAppleControls(context)) {
+      final label = _followed ? I18n.of(context).followed : I18n.of(context).follow;
+      return TextButton(
+        style: TextButton.styleFrom(
+          padding: EdgeInsets.zero,
+          minimumSize: const Size(44, 44),
+          shape: const StadiumBorder(),
+          foregroundColor: Theme.of(context).colorScheme.primary,
+        ),
+        onPressed: _loading ? null : _toggleFollow,
+        onLongPress: _loading ? null : _longPressAction,
+        child: IPadSurface(
+          circular: true,
+          tint: Theme.of(context).colorScheme.primary.withValues(alpha: .16),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 40),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+              child: Center(widthFactor: 1, heightFactor: 1, child: _loading
+                  ? const SizedBox.square(dimension: 14, child: CircularProgressIndicator(strokeWidth: 1.5))
+                  : Text(label)),
+            ),
           ),
-          onPressed: _loading ? null : _toggleFollow,
-          onLongPress: _loading ? null : _longPressAction,
-          child: _loading
-              ? const SizedBox.square(
-                  dimension: 14,
-                  child: CircularProgressIndicator(strokeWidth: 1.5),
-                )
-              : Text(
-                  _followed
-                      ? I18n.of(context).followed
-                      : I18n.of(context).follow,
-                ),
         ),
       );
     }

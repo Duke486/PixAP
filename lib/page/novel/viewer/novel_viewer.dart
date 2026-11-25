@@ -1,3 +1,4 @@
+import 'package:pixez/component/glass_form_control.dart';
 /*
  * Copyright (C) 2020. by perol_notsf, All rights reserved
  *
@@ -160,7 +161,7 @@ class _NovelViewerPageState extends State<NovelViewerPage> {
   }
 
   Widget _buildBody(BuildContext context) {
-    final inset = usesIPadLayout(context)
+    final inset = usesAppleControls(context)
         ? ((MediaQuery.sizeOf(context).width - 760) / 2).clamp(16.0, double.infinity).toDouble()
         : 0.0;
     return ListView.builder(
@@ -260,9 +261,9 @@ class _NovelViewerPageState extends State<NovelViewerPage> {
       child: Center(
         child: TextButton(
           onPressed: () {
-            Leader.push(
+            openCommentPage(
               context,
-              CommentPage(id: _novelStore.id, type: CommentArtWorkType.NOVEL),
+              CommentPage(inPanel: isIPhone, id: _novelStore.id, type: CommentArtWorkType.NOVEL),
             );
           },
           child: Text(
@@ -367,9 +368,9 @@ class _NovelViewerPageState extends State<NovelViewerPage> {
           ),
           TextButton(
             onPressed: () {
-              Leader.push(
+              openCommentPage(
                 context,
-                CommentPage(id: _novelStore.id, type: CommentArtWorkType.NOVEL),
+                CommentPage(inPanel: isIPhone, id: _novelStore.id, type: CommentArtWorkType.NOVEL),
               );
             },
             child: Text(
@@ -418,7 +419,7 @@ class _NovelViewerPageState extends State<NovelViewerPage> {
                         margin: EdgeInsets.only(left: 16),
                       ),
                       Expanded(
-                        child: Slider(
+                        child: glassSlider(Slider(
                           value: _textStyle!.fontSize! / 32,
                           onChanged: (v) {
                             setB(() {
@@ -428,7 +429,7 @@ class _NovelViewerPageState extends State<NovelViewerPage> {
                             });
                             userSetting.setNovelFontsizeWithoutSave(v * 32);
                           },
-                        ),
+                        )),
                       ),
                     ],
                   ),

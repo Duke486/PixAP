@@ -36,6 +36,8 @@ class MainFlutterWindow: NSWindow, FlutterStreamHandler {
             }
     }
     
+    private var colorObserver: NSObjectProtocol?
+
     override func awakeFromNib() {
         let flutterViewController = FlutterViewController()
         let windowFrame = self.frame
@@ -59,6 +61,24 @@ class MainFlutterWindow: NSWindow, FlutterStreamHandler {
         let eventChannel = FlutterEventChannel(name: "deep_links/events", binaryMessenger: flutterViewController.engine.binaryMessenger)
         eventChannel.setStreamHandler(self)
 
+        let colors = FlutterMethodChannel(name: "pixez/themeColor", binaryMessenger: flutterViewController.engine.binaryMessenger)
+        colors.setMethodCallHandler { [weak self] call, result in
+            guard call.method == "pick", let value = call.arguments as? NSNumber,
+                  let self, self.colorObserver == nil else { result(nil); return }
+            let rgb = value.uint32Value
+            let panel = NSColorPanel.shared
+            panel.showsAlpha = false
+            panel.color = NSColor(srgbRed: CGFloat(rgb >> 16 & 255) / 255,
+                green: CGFloat(rgb >> 8 & 255) / 255, blue: CGFloat(rgb & 255) / 255, alpha: 1)
+            self.colorObserver = NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification,
+                object: panel, queue: .main) { [weak self] _ in
+                if let observer = self?.colorObserver { NotificationCenter.default.removeObserver(observer) }
+                self?.colorObserver = nil
+                guard let c = panel.color.usingColorSpace(.sRGB) else { result(nil); return }
+                result(0xff000000 | Int((c.redComponent * 255).rounded()) << 16 | Int((c.greenComponent * 255).rounded()) << 8 | Int((c.blueComponent * 255).rounded()))
+            }
+            panel.makeKeyAndOrderFront(nil)
+        }
         DocumentPlugin.bind(controller: flutterViewController)
 
         RegisterGeneratedPlugins(registry: flutterViewController)

@@ -85,7 +85,7 @@ class _UserBookmarkTagPageState extends State<UserBookmarkTagPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(centerTitle: usesIPadLayout(context) ? true : null, title: IPadPageTabs(tabs: _buildTabBar(context)), elevation: 0.0),
+      appBar: AppBar(centerTitle: usesAppleControls(context) ? true : null, title: IPadPageTabs(tabs: _buildTabBar(context)), elevation: 0.0),
       body: Column(
         children: [
           Container(

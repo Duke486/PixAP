@@ -1,3 +1,4 @@
+import 'package:pixez/component/glass_form_control.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:pixez/i18n.dart';
@@ -80,7 +81,7 @@ class _State extends ConsumerState<FollowDetailAlert> {
                     : Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          SwitchListTile(
+                          glassSwitchTile(SwitchListTile(
                             value: _restrict == 'private',
                             title: Text(I18n.of(context).quietly_follow),
                             onChanged: (value) {
@@ -88,7 +89,7 @@ class _State extends ConsumerState<FollowDetailAlert> {
                                 _restrict = value ? 'private' : 'public';
                               });
                             },
-                          ),
+                          )),
                           Divider(
                             height: 1,
                           ),

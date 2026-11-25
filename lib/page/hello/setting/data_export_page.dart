@@ -1,3 +1,4 @@
+import 'package:pixez/component/glass_form_control.dart';
 import 'dart:io';
 
 import 'package:bot_toast/bot_toast.dart';
@@ -20,12 +21,12 @@ class DataExportPage extends HookConsumerWidget {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            Card(
+            SettingsSection(
               margin: EdgeInsets.all(8.0),
               child: _buildColumn(context, ref),
             ),
             const SizedBox(height: 24),
-            Card(
+            SettingsSection(
               margin: EdgeInsets.symmetric(horizontal: 8.0),
               child: ListTile(
                 leading: Icon(
@@ -201,13 +202,7 @@ class DataExportPage extends HookConsumerWidget {
     }
   }
 
-  void cleanGlanceData() async {
-    GlanceIllustPersistProvider glanceIllustPersistProvider =
-        GlanceIllustPersistProvider();
-    await glanceIllustPersistProvider.open();
-    await glanceIllustPersistProvider.deleteAll();
-    await glanceIllustPersistProvider.close();
-  }
+  Future<void> cleanGlanceData() => GlanceIllustPersistProvider.clearCache();
 
   Widget _buildAppDataListTile(
     BuildContext context,
@@ -222,11 +217,9 @@ class DataExportPage extends HookConsumerWidget {
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          TextButton(
-            child: Text(I18n.of(context).import_title),
-            onPressed: onImport,
-          ),
-          TextButton(child: Text(I18n.of(context).export), onPressed: onExport),
+          GlassActionButton(compact: true, label: I18n.of(context).import_title, onPressed: () => onImport()),
+          const SizedBox(width: 4),
+          GlassActionButton(compact: true, label: I18n.of(context).export, onPressed: () => onExport()),
         ],
       ),
     );

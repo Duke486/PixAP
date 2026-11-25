@@ -1,3 +1,4 @@
+import 'package:pixez/component/glass_form_control.dart';
 /*
  * Copyright (C) 2020. by perol_notsf, All rights reserved
  *
@@ -153,12 +154,12 @@ class _AccountEditPageState extends State<AccountEditPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(I18n.of(context).account_message),
-        actions: <Widget>[IconButton(icon: Icon(Icons.save), onPressed: _save)],
+        actions: <Widget>[GlassActionButton(compact: true, label: I18n.of(context).save, onPressed: _save)],
       ),
       body: SingleChildScrollView(
         child: Column(
           children: [
-            Card(
+            SettingsSection(
               margin: EdgeInsets.symmetric(horizontal: 8.0),
               child: Column(
                 children: [
@@ -188,7 +189,7 @@ class _AccountEditPageState extends State<AccountEditPage> {
               ),
             ),
             if (showTokenExport)
-              Card(
+              SettingsSection(
                 margin: const EdgeInsets.fromLTRB(8, 16, 8, 0),
                 child: ListTile(
                   leading: Icon(Icons.vpn_key_outlined),
@@ -204,7 +205,7 @@ class _AccountEditPageState extends State<AccountEditPage> {
                   },
                 ),
               ),
-            Card(
+            SettingsSection(
               margin: const EdgeInsets.fromLTRB(8, 16, 8, 0),
               child: ListTile(
                 leading: Icon(Icons.lock_outline),
@@ -214,7 +215,7 @@ class _AccountEditPageState extends State<AccountEditPage> {
               ),
             ),
             const SizedBox(height: 24),
-            Card(
+            SettingsSection(
               margin: EdgeInsets.symmetric(horizontal: 8.0),
               child: ListTile(
                 leading: Icon(Icons.delete_outline, color: errorColor),

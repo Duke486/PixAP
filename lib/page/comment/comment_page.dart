@@ -30,6 +30,7 @@ import 'package:pixez/main.dart';
 import 'package:pixez/models/comment_response.dart';
 import 'package:pixez/network/api_client.dart';
 import 'package:pixez/page/comment/comment_store.dart';
+import 'package:pixez/component/ipad_surface.dart';
 import 'package:pixez/page/report/report_items_page.dart';
 import 'package:pixez/utils/haptic_util.dart';
 
@@ -60,13 +61,33 @@ class ArtworkCommentButton extends StatelessWidget {
   }
 }
 
-Future<void> showArtworkComments(BuildContext context, int id) =>
-    showDialog<void>(context: context, builder: (dialogContext) {
-      final size = MediaQuery.sizeOf(dialogContext);
-      return Dialog(clipBehavior: Clip.antiAlias,
-        child: SizedBox(width: size.width * .48, height: size.height * .8,
-          child: CommentPage(id: id, inPanel: true)));
-    });
+Future<void> showArtworkComments(BuildContext context, int id) {
+  if (isIPhone) return openCommentPage(context, CommentPage(id: id, inPanel: true));
+  return showDialog<void>(context: context, builder: (dialogContext) {
+    final size = MediaQuery.sizeOf(dialogContext);
+    return Dialog(clipBehavior: Clip.antiAlias,
+      child: SizedBox(width: size.width * .48, height: size.height * .8,
+        child: CommentPage(id: id, inPanel: true)));
+  });
+}
+
+Future<void> openCommentPage(BuildContext context, CommentPage page) async {
+  if (!isIPhone) {
+    await Leader.push(context, page);
+    return;
+  }
+  await showModalBottomSheet<void>(
+    context: context,
+    useRootNavigator: true,
+    isScrollControlled: true,
+    useSafeArea: true,
+    showDragHandle: true,
+    constraints: BoxConstraints.tightFor(width: MediaQuery.sizeOf(context).width),
+    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+    clipBehavior: Clip.antiAlias,
+    builder: (context) => FractionallySizedBox(heightFactor: .86, widthFactor: 1, child: page),
+  );
+}
 
 enum CommentArtWorkType { ILLUST, NOVEL }
 
@@ -332,9 +353,10 @@ class _CommentPageState extends State<CommentPage> {
                                                   label: Text(I18n.of(context)
                                                       .view_replies),
                                                   onPressed: () async {
-                                                    Leader.push(
+                                                    openCommentPage(
                                                         context,
                                                         CommentPage(
+                                                          inPanel: isIPhone,
                                                           id: widget.id,
                                                           isReplay: true,
                                                           pId: comment.id!,
