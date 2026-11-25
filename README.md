@@ -1,5 +1,7 @@
 <div align="center">
 
+**简体中文** · [English](README.en.md) · [日本語](README.ja.md) · [한국어](README.ko.md)
+
 <img src="assets/images/pixap_login_icon.png" alt="" width="96">
 
 # PixAP
@@ -89,28 +91,24 @@ Xcode 工程使用 [Flutter 构建脚本](ios/Flutter/build_with_xcode.sh)。Rel
 
 ## 源码、感谢与许可
 
-PixAP 由 [Duke486](https://github.com/Duke486) 基于 [PixEz Flutter](https://github.com/Notsfsssf/pixez-flutter) 开发并独立维护。感谢上游作者 Perol_Notsfsssf 和所有贡献者。上游基线为 [`f11be4dd`](https://github.com/Notsfsssf/pixez-flutter/commit/f11be4ddf03775175006e4b3ebd70c446961f4e6)。
+[PixEz Flutter](https://github.com/Notsfsssf/pixez-flutter) 由 [Perol_Notsfsssf](https://github.com/Notsfsssf) 创建。PixAP 由 [Duke486](https://github.com/Duke486) 在此基础上开发并独立维护。上游基线为 [`f11be4dd`](https://github.com/Notsfsssf/pixez-flutter/commit/f11be4ddf03775175006e4b3ebd70c446961f4e6)。
 
 项目与 Apple、pixiv 及上游项目无官方关联。源码按 [GNU GPL v3](LICENSE) 发布。原有版权与许可声明保存在源码和第三方组件目录中。
 
-<details>
-<summary><strong>上游贡献者与文档</strong></summary>
+### 上游作者与贡献者
 
-
-本项目目前的贡献者列表如下：
+感谢 PixEz Flutter 的原作者和各位贡献者。
 
 <table>
   <tr>
     <td align="center"><a href="https://github.com/Notsfsssf"><img src="https://avatars3.githubusercontent.com/u/16934707?v=4" width="100px;" alt=""/><br /><sub><b>Perol_Notsfsssf</b></sub></a><br /><a href="https://github.com/Skimige/pixez-flutter/commits?author=Notsfsssf" title="Code">💻</a></td>
     <td align="center"><a href="https://xyx.moe"><img src="https://avatars3.githubusercontent.com/u/9017470?v=4" width="100px;" alt=""/><br /><sub><b>Skimige</b></sub></a><br /><a href="https://github.com/Skimige/pixez-flutter/commits?author=Skimige" title="Documentation">📖</a></td>
-    <td align="center"><a href="https://github.com/TragicLifeHu"><img src="https://avatars3.githubusercontent.com/u/16817202?v=4" width="100px;" alt=""/><br /><sub><b>Tragic Life</b></sub></a><br /><a href="#translation-TragicLifeHu" title="Translation">🌍 (zh_TW)</a></td>
-    <td align="center"><a href="http://ivtune.net"><img src="https://avatars0.githubusercontent.com/u/54385201?v=4" width="100px;" alt=""/><br /><sub><b>karin722</b></sub></a><br /><a href="#translation-karin722" title="Translation">🌍 (ja)</a></td>
+    <td align="center"><a href="https://github.com/TragicLifeHu"><img src="https://avatars3.githubusercontent.com/u/16817202?v=4" width="100px;" alt=""/><br /><sub><b>Tragic Life</b></sub></a><br />🌍</td>
+    <td align="center"><a href="http://ivtune.net"><img src="https://avatars0.githubusercontent.com/u/54385201?v=4" width="100px;" alt=""/><br /><sub><b>karin722</b></sub></a><br />🌍</td>
     <td align="center"><a href="http://archman.fun"><img src="https://avatars0.githubusercontent.com/u/68731023?v=4" width="100px;" alt=""/><br /><sub><b>Romani-Archman</b></sub></a><br /><a href="https://github.com/Skimige/pixez-flutter/commits?author=Romani-Archman" title="Documentation">📖</a></td>
-    <td align="center"><a href="https://github.com/itzXian"><img src="https://avatars1.githubusercontent.com/u/34748039?v=4" width="100px;" alt=""/><br /><sub><b>Xian</b></sub></a><br /><a href="#translation-itzXian" title="Translation">🌍 (en_US)</a></td>
-    <td align="center"><a href="https://github.com/ReikiAigawara"><img src="https://avatars1.githubusercontent.com/u/66962815?v=4" width="100px;" alt=""/><br /><sub><b>Reiki Aigawara</b></sub></a><br /><a href="#translation-ReikiAigawara" title="Translation">🌍 (id_ID)</a></td>
+    <td align="center"><a href="https://github.com/itzXian"><img src="https://avatars1.githubusercontent.com/u/34748039?v=4" width="100px;" alt=""/><br /><sub><b>Xian</b></sub></a><br />🌍</td>
+    <td align="center"><a href="https://github.com/ReikiAigawara"><img src="https://avatars1.githubusercontent.com/u/66962815?v=4" width="100px;" alt=""/><br /><sub><b>Reiki Aigawara</b></sub></a><br />🌍</td>
   </tr>
 </table>
 
-[英文说明](https://github.com/Notsfsssf/pixez-flutter/blob/master/.github/README_en.md) · [印尼语说明](https://github.com/Notsfsssf/pixez-flutter/blob/master/.github/README_id.md) · [常见问题](https://github.com/Notsfsssf/pixez-flutter/blob/master/.github/FAQ.md)
-
-</details>
+[上游常见问题](https://github.com/Notsfsssf/pixez-flutter/blob/master/.github/FAQ.md)
